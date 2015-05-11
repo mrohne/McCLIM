@@ -68,20 +68,25 @@
          (format t "~%~%You need to run (mp::startup-idle-and-top-level-loops) to start up the multiprocessing support.~%~%")))
 
 ;;; Make CLX asdf-loadable on Allegro 6.2
-;;; possibly this should be further refined to function properly for
-;;; Allegro on Windows platforms. [2005/04/18:rpg]
-
 #+allegro
 (defsystem :clx
   :components ((:file "require-clx")))
 
 ;;; Clozure CL native GUI stuff
-#+clim-beagle
-(require :cocoa)
+#+ccl
+(progn
+  #+darwin
+  (pushnew :clim-beagle *features*))
+
+;;; SBCL on Darwin - use SDL
+#+sbcl
+(progn
+  #+darwin
+  (pushnew :clim-opengl *features*))
 
 (defsystem :clim-lisp
-    :components
-  (;; First possible patches
+  :components
+  ( ;; First possible patches
    (:file "patch")
    (:module "Lisp-Dep"
             :depends-on ("patch")
@@ -455,22 +460,21 @@ Deleting it, that it may be replaced with a working one.~@:>")
                (:file "gadgets")))))
 
 (defsystem :clim-graphic-forms
-    :depends-on (:clim :graphic-forms-uitoolkit)
-    :components
-    ((:module "Backends/Graphic-Forms"
-              :components
-              ((:file "package")
-         (:file "utils" :depends-on ("package"))
-               (:file "graft" :depends-on ("package"))
-               (:file "port" :depends-on ("utils" "graft"))
-               (:file "medium" :depends-on ("port"))
-         (:file "pixmap" :depends-on ("medium"))
-               (:file "frame-manager" :depends-on ("medium"))
-         (:file "gadgets" :depends-on ("port"))))))
+  :depends-on (:clim :graphic-forms-uitoolkit)
+  :components
+  ((:module "Backends/Graphic-Forms"
+	    :components
+	    ((:file "package")
+	     (:file "utils" :depends-on ("package"))
+	     (:file "graft" :depends-on ("package"))
+	     (:file "port" :depends-on ("utils" "graft"))
+	     (:file "medium" :depends-on ("port"))
+	     (:file "pixmap" :depends-on ("medium"))
+	     (:file "frame-manager" :depends-on ("medium"))
+	     (:file "gadgets" :depends-on ("port"))))))
 
-;;; TODO/asf: I don't have the required libs to get :clim-opengl to load. tough.
 (defsystem :clim-opengl
-  :depends-on (:clim)
+  :depends-on (:clim :sdl2)
   :serial t
   :components
   ((:file "Backends/OpenGL/opengl-x-frame-manager")
@@ -484,30 +488,21 @@ Deleting it, that it may be replaced with a working one.~@:>")
 ;;; A system that loads the appropriate backend for the current
 ;;; platform.
 (defsystem :clim-looks
-    :depends-on (:clim :clim-postscript
-                 ;; If we're on an implementation that ships CLX, use
-                 ;; it. Same if the user has loaded CLX already.
-                 #+(and (or sbcl scl openmcl ecl clx allegro)
-                        (not (or clim-gtkairo clim-graphic-forms clim-beagle)))
-                 :clim-clx
-                 #+clim-graphic-forms             :clim-graphic-forms
-                 #+clim-gl                        :clim-opengl
-                 ;; OpenMCL and MCL support the beagle backend (native
-                 ;; OS X look&feel on OS X).
-                 #+clim-beagle :clim-beagle
-
-                 #+clim-gtkairo :clim-gtkairo
-
-                 ;; null backend
-                 :clim-null
-                 )
-    :components (#-(or clim-gtkairo clim-graphic-forms clim-beagle)
+  :depends-on (:clim :clim-postscript
+		     #+clim-clx            :clim-clx
+		     #+clim-graphic-forms  :clim-graphic-forms
+		     #+clim-opencl         :clim-opengl 
+		     #+clim-beagle         :clim-beagle
+		     #+clim-gtkairo        :clim-gtkairo
+		     #+clim-null           :clim-null
+		     )
+  :components (#-(or clim-gtkairo clim-graphic-forms clim-beagle)
                  (:file "Looks/pixie")))
 
 ;;; The actual McCLIM system that people should to use in their ASDF
 ;;; package dependency lists.
 (defsystem :mcclim
-  :version "0.9.7-dev"
+  :version "0.9.7.1"
   :depends-on (:clim-looks))
 
 (defmethod perform :after ((op load-op) (c (eql (find-system :mcclim))))
