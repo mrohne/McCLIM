@@ -26,91 +26,81 @@
 ;;; ships with it, and it has the added benefit of ASDF-INSTALL.
 ;;; Get ASDF, and be welcome to the 21st century. -- [2005-01-31:asf]
 
-(defpackage :mcclim.system
+(defpackage :clim.system
   (:use :asdf :cl))
-(in-package :mcclim.system)
+(in-package :clim.system)
 
 (defparameter *clim-directory* (directory-namestring *load-truename*))
 
-(eval-when (:compile-toplevel :load-toplevel :execute)
-  (defun find-swank-package ()
-    (find-package :swank))
-  (defun find-swank-system ()
-    (handler-case (asdf:find-system :swank)
-      (asdf:missing-component ())))
-  (defun find-swank ()
-    (or (find-swank-package)
-        (find-swank-system)))
-  (defun dep-on-swank ()
-    (if (and (find-swank-system)
-             (not (find-package :swank)))
-        '(:and)
-        '(:or)))
-  (defun ifswank ()
-    (if (find-swank)
-        '(:and)
-        '(:or))))
+;;; Load SWANK
+#+common-lisp#.
+(ignore-errors 
+  (require 'swank))
 
 ;;; Make CLX asdf-loadable on Allegro 6.2
-#+allegro
-(defsystem :clx
-  :components ((:file "require-clx")))
+#+allegro#.
+(progn
+  (defsystem :clx
+    :components ((:file "require-clx"))))
 
 ;;; Clozure CL native GUI stuff
-#+ccl
+#+ccl#.
 (progn
   #+darwin
-  (progn
+  (ignore-errors 
     (require 'cocoa)
     (pushnew :clim-beagle *features*)))
 
 ;;; SBCL on Darwin - use SDL
-#+sbcl
+#+sbcl#.
 (progn
   #+darwin
-  (progn
+  (ignore-errors
     (ql:quickload :sdl2)
     (pushnew :clim-sdl *features*)))
 
-(defsystem :clim-lisp
-  :components
-  ((:file "patch")
-   (:module "System"
-            :depends-on
-            :components
-            ((:file   #+cmu       "fix-cmu"
-                      #+scl       "fix-scl"
-                      #+excl      "fix-acl"
-                      #+sbcl      "fix-sbcl"
-                      #+openmcl   "fix-openmcl"
-                      #+lispworks "fix-lispworks"
-                      #+clisp     "fix-clisp")
-	     (:file #.(first
-		       (list
-			#+cmu                     "mp-cmu"
-			#+scl                     "mp-scl"
-			#+sb-thread               "mp-sbcl"
-			#+excl                    "mp-acl"
-			#+openmcl                 "mp-openmcl"
-			#+lispworks               "mp-lw"
-			#| fall back |#           "mp-nil")))))))
+(defsystem :clim-system
+  :components 
+  ((:module "System"
+	    :components
+	    ((:file "patch")
+	     (:module "Fix"
+		      :components
+		      ((:file   #+cmu       "fix-cmu"
+				#+scl       "fix-scl"
+				#+excl      "fix-acl"
+				#+sbcl      "fix-sbcl"
+				#+openmcl   "fix-openmcl"
+				#+lispworks "fix-lispworks"
+				#+clisp     "fix-clisp")))
+	     (:file "package")
+	     (:module "MP"
+		      :components
+		      ((:file #.(first
+				 (list
+				  #+cmu                     "mp-cmu"
+				  #+scl                     "mp-scl"
+				  #+sb-thread               "mp-sbcl"
+				  #+excl                    "mp-acl"
+				  #+openmcl                 "mp-openmcl"
+				  #+lispworks               "mp-lw"
+				  #| fall back |#           "mp-nil")))))))))
 
-(defsystem :clim-basic
-  :depends-on (:clim-lisp :spatial-trees (:version "flexichain" "1.5.1"))
+(defsystem :clim-base
+  :depends-on (:clim-system :spatial-trees (:version "flexichain" "1.5.1"))
   :serial t
-  :components ((:file "package")
-	       (:file "decls")
+  :components ((:file "decls")
 	       (:file "protocol-classes")
-	       (:module "Core"
+	       (:module "CLIM/Base"
 			:components
 			((:file "utils")
-			 (:file "design")
-			 (:file "X11-colors")
 			 (:file "coordinates")
 			 (:file "setf-star")
 			 (:file "transforms")
 			 (:file "dead-keys")
+			 (:file "design")
 			 (:file "regions")
+			 (:file "X11-colors")
 			 (:file "sheets")
 			 (:file "pixmap")
 			 (:file "events")
@@ -130,7 +120,7 @@
 			 (:file "bezier")))))
 
 (defsystem :goatee-core
-  :depends-on (:clim-basic)
+  :depends-on (:clim-base)
   :components
   ((:module "Goatee"
 	    :components
@@ -145,11 +135,9 @@
 	     (:file "goatee-command")
 	     (:file "editing-stream")
 	     (:file "presentation-history")))))
-;;; CLIM-PostScript is not a backend in the normal sense.
-;;; It is an extension (Chap. 35.1 of the spec) and is an
-;;; "included" part of McCLIM. Hence the defsystem is here.
+
 (defsystem :clim-postscript
-  :depends-on (:clim-basic)
+  :depends-on (:clim-base)
   :components
   ((:module "Backends/PostScript"
             :components
@@ -164,92 +152,96 @@
              (:file "standard-metrics")))))
 
 (defsystem :clim-core
-  :depends-on (:clim-basic :goatee-core :clim-postscript)
-  :components ((:file "text-formatting")
-               (:file "defresource")
-               (:file "presentations")
-               (:file "xpm")
-               (:file "bordered-output")
-               (:file "table-formatting")
-               (:file "input-editing")
-               (:file "pointer-tracking")
-               (:file "graph-formatting")
-               (:file "frames")
-               (:file "dialog-views")
-               (:file "presentation-defs")
-               (:file "gadgets")
-               (:file "describe")
-               (:file "commands")
-               (:file "incremental-redisplay")
-               (:file "menu-choose")
-               (:file "menu")
-               (:file "panes")
-               (:file "dialog")
-               (:file "builtin-commands")))
+  :depends-on (:clim-base :goatee-core :clim-postscript)
+  :components 
+  ((:module "CLIM/Core"
+	    :components 
+	    ((:file "text-formatting")
+	     (:file "defresource")
+	     (:file "presentations")
+	     (:file "xpm")
+	     (:file "bordered-output")
+	     (:file "table-formatting")
+	     (:file "input-editing")
+	     (:file "pointer-tracking")
+	     (:file "graph-formatting")
+	     (:file "frames")
+	     (:file "presentation-defs")
+	     (:file "dialog-views")
+	     (:file "describe")
+	     (:file "commands")
+	     (:file "incremental-redisplay")
+	     (:file "panes")
+	     (:file "gadgets")
+	     (:file "menu-choose")
+	     (:file "menu")
+	     (:file "dialog")
+	     (:file "builtin-commands")))))
 
 (defsystem :esa-mcclim
   :depends-on (:clim-core)
-  :components ((:module "ESA"
-                        :components ((:file "packages")
-                                     (:file "utils")
-                                     (:file "colors")
-                                     (:file "esa")
-                                     (:file "esa-buffer")
-                                     (:file "esa-io")
-                                     (:file "esa-command-parser")))))
+  :components 
+  ((:module "ESA"
+	    :components 
+	    ((:file "packages")
+	     (:file "utils")
+	     (:file "colors")
+	     (:file "esa")
+	     (:file "esa-buffer")
+	     (:file "esa-io")
+	     (:file "esa-command-parser")))))
 
 
 
 (defsystem :drei-mcclim
-  :depends-on ((:version "flexichain" "1.5.1") :esa-mcclim :clim-core #+#.(mcclim.system::dep-on-swank) :swank)
+  :depends-on ((:version "flexichain" "1.5.1") :esa-mcclim :clim-core)
   :components
-  ((:module "Drei/cl-automaton"
-            :components ((:file "automaton-package")
-                         (:file "eqv-hash")
-                         (:file "state-and-transition")
-                         (:file "automaton")
-                         (:file "regexp")))
-   (:module "Drei/Persistent"
-            :components ((:file "binseq-package")
-                         (:file "binseq")
-                         (:file "obinseq")
-                         (:file "binseq2")))
-   (:module "Drei"
-            :components ((:file "packages")
-                         (:file "buffer")
-                         (:file "delegating-buffer")
-                         (:file "motion")
-                         (:file "editing")
-                         (:file "base")
-                         (:file "syntax")
-                         (:file "modes")
-                         (:file "views")
-                         (:file "drei")
-                         (:file "drei-clim")
-                         (:file "drei-redisplay")
-                         (:file "drawing-options")
-                         (:file "input-editor")
-                         (:file "abbrev")
-                         (:file "kill-ring")
-                         (:file "undo")
-                         (:file "basic-commands")
-                         (:file "core")
-                         (:file "fundamental-syntax")
-                         (:file "buffer-streams")
-                         (:file "rectangle")
-                         (:file "targets")
-                         (:file "core-commands")
-                         (:file "Persistent/persistent-buffer")
-                         (:file "Persistent/persistent-undo"
-                                :pathname #p"Persistent/persistent-undo.lisp"
-                               )
-                         (:file "misc-commands")
-                         (:file "search-commands")
-                         (:file "lr-syntax")
-                         (:file "lisp-syntax")
-                         (:file "lisp-syntax-swine")
-                         (:file "lisp-syntax-commands")
-                         #+#.(mcclim.system::ifswank) (:file "lisp-syntax-swank")))))
+  ((:module "Drei"
+	    :components
+	    ((:module "cl-automaton"
+		      :components ((:file "automaton-package")
+				   (:file "eqv-hash")
+				   (:file "state-and-transition")
+				   (:file "automaton")
+				   (:file "regexp")))
+	     (:module "Persistent"
+		      :components ((:file "binseq-package")
+				   (:file "binseq")
+				   (:file "obinseq")
+				   (:file "binseq2")))
+	     (:file "packages")
+	     (:file "buffer")
+	     (:file "delegating-buffer")
+	     (:file "Persistent/persistent-buffer")
+	     (:file "motion")
+	     (:file "editing")
+	     (:file "base")
+	     (:file "syntax")
+	     (:file "modes")
+	     (:file "views")
+	     (:file "drei")
+	     (:file "drei-clim")
+	     (:file "drei-redisplay")
+	     (:file "drawing-options")
+	     (:file "input-editor")
+	     (:file "abbrev")
+	     (:file "kill-ring")
+	     (:file "undo")
+	     (:file "Persistent/persistent-undo")
+	     (:file "basic-commands")
+	     (:file "core")
+	     (:file "fundamental-syntax")
+	     (:file "buffer-streams")
+	     (:file "rectangle")
+	     (:file "targets")
+	     (:file "core-commands")
+	     (:file "misc-commands")
+	     (:file "search-commands")
+	     (:file "lr-syntax")
+	     (:file "lisp-syntax")
+	     (:file "lisp-syntax-swine")
+	     (:file "lisp-syntax-commands")
+	     #+swank (:file "lisp-syntax-swank")))))
 
 (defsystem :drei-tests
   :depends-on (:drei-mcclim :fiveam)
@@ -278,8 +270,8 @@
              (:file "lisp-syntax-tests")
              (:file "lisp-syntax-swine-tests")))))
 
-(defsystem :clim
-  :depends-on (:clim-core :goatee-core :clim-postscript :drei-mcclim)
+(defsystem :clim-input
+  :depends-on (:clim-core :goatee-core :esa-mcclim :drei-mcclim)
   :components
   ((:file "input-editing-goatee")
    (:file "input-editing-drei")
@@ -287,7 +279,7 @@
    (:file "Extensions/tab-layout")))
 
 (defsystem :clim-sdl
-    :depends-on (:clim :sdl2)
+    :depends-on (:clim-core :sdl2)
     :components
     ((:module "Backends/SDL"
               :components
@@ -298,7 +290,7 @@
                (:file "frame-manager")))))
 
 (defsystem :clim-clx
-  :depends-on (:clim #+(or sbcl openmcl ecl clisp allegro) :clx)
+  :depends-on (:clim-core :clx)
   :components
   ((:module "Backends/CLX"
     :components
@@ -313,7 +305,7 @@
      (:file "frame-manager")))))
 
 (defsystem :clim-beagle
-  :depends-on (clim)
+  :depends-on (:clim-core)
   :components
   ((:module "Backends"
             :components
@@ -376,7 +368,7 @@
                              (:file "graft-tests")))))))))
 
 (defsystem :clim-null
-    :depends-on (:clim)
+    :depends-on (:clim-core)
     :components
     ((:module "Backends/Null"
               :components
@@ -387,7 +379,7 @@
                (:file "frame-manager")))))
 
 (defsystem :clim-gtkairo
-    :depends-on (:clim :cffi)
+    :depends-on (:clim-core :cffi)
     :components
     ((:module "Backends/gtkairo"
               :serial t
@@ -410,9 +402,9 @@
                (:file "gadgets")))))
 
 (defsystem :clim-graphic-forms
-  :depends-on (:clim :graphic-forms-uitoolkit)
+  :depends-on (:clim-core :graphic-forms-uitoolkit)
   :components
-  ((:module "Backends/Graphic-Forms"
+  ((:module "Backends/GFW"
 	    :components
 	    ((:file "package")
 	     (:file "utils")
@@ -423,39 +415,27 @@
 	     (:file "frame-manager")
 	     (:file "gadgets")))))
 
-(defsystem :clim-opengl
-  :depends-on (:clim :sdl2)
-  :serial t
-  :components
-  ((:file "Backends/OpenGL/opengl-x-frame-manager")
-   (:file "Backends/OpenGL/opengl-frame-manager")
-   (:file "Backends/OpenGL/opengl-x-port-before")
-   (:file "Backends/OpenGL/opengl-port")
-   (:file "Backends/OpenGL/opengl-x-port-after")
-   (:file "Backends/OpenGL/opengl-medium")
-   (:file "Backends/OpenGL/opengl-x-graft")))
-
 ;;; A system that loads the appropriate backend for the current
 ;;; platform.
 (defsystem :clim-looks
-  :depends-on (:clim :clim-postscript
-		     #+clim-sdl            :clim-sdl
-		     #+clim-clx            :clim-clx
-		     #+clim-graphic-forms  :clim-graphic-forms
-		     #+clim-opencl         :clim-opengl 
-		     #+clim-beagle         :clim-beagle
-		     #+clim-gtkairo        :clim-gtkairo
-		     #+clim-null           :clim-null
-		     )
+  :depends-on (:clim-core 
+	       #+clim-sdl            :clim-sdl
+	       #+clim-clx            :clim-clx
+	       #+clim-graphic-forms  :clim-graphic-forms
+	       #+clim-opencl         :clim-opengl 
+	       #+clim-beagle         :clim-beagle
+	       #+clim-gtkairo        :clim-gtkairo
+	       #+clim-null           :clim-null
+	       )
   :components ((:file "Looks/pixie")))
 
-;;; The actual McCLIM system that people should to use in their ASDF
+;;; The actual CLIM system that people should to use in their ASDF
 ;;; package dependency lists.
-(defsystem :mcclim
-  :version "0.9.7.1"
-  :depends-on (:clim-looks))
+(defsystem :clim
+  :version "0.0.0"
+  :depends-on (:clim-core :clim-input :clim-looks))
 
-(defmethod perform :after ((op load-op) (c (eql (find-system :mcclim))))
+(defmethod perform :after ((op load-op) (c (eql (find-system :clim))))
   (pushnew :clim *features*)) ;; The fact that CLIM itself is available is true when all is loaded.
 
 ;; The fact that our CLIM implementation is McCLIM is already true now.
