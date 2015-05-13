@@ -31,6 +31,7 @@
 (in-package :clim.system)
 
 (defparameter *clim-directory* (directory-namestring *load-truename*))
+(proclaim '(optimize (debug 3) (safety 3) (space 0) (speed 0)))
 
 ;;; Load SWANK
 #+common-lisp#.
@@ -44,7 +45,7 @@
     :components ((:file "require-clx"))))
 
 ;;; Clozure CL native GUI stuff
-#+ccl#.
+#+ccl
 (progn
   #+darwin
   (ignore-errors 
@@ -52,11 +53,10 @@
     (pushnew :clim-beagle *features*)))
 
 ;;; SBCL on Darwin - use SDL
-#+sbcl#.
+#+sbcl
 (progn
   #+darwin
   (ignore-errors
-    (ql:quickload :sdl2)
     (pushnew :clim-sdl *features*)))
 
 (defsystem :clim-system
@@ -367,17 +367,6 @@
                 :components ((:file "drawing-tests")
                              (:file "graft-tests")))))))))
 
-(defsystem :clim-null
-    :depends-on (:clim-core)
-    :components
-    ((:module "Backends/Null"
-              :components
-              ((:file "package")
-               (:file "port")
-               (:file "medium")
-               (:file "graft")
-               (:file "frame-manager")))))
-
 (defsystem :clim-gtkairo
     :depends-on (:clim-core :cffi)
     :components
@@ -415,6 +404,17 @@
 	     (:file "frame-manager")
 	     (:file "gadgets")))))
 
+(defsystem :clim-null
+    :depends-on (:clim-core)
+    :components
+    ((:module "Backends/Null"
+              :components
+              ((:file "package")
+               (:file "port")
+               (:file "medium")
+               (:file "graft")
+               (:file "frame-manager")))))
+
 ;;; A system that loads the appropriate backend for the current
 ;;; platform.
 (defsystem :clim-looks
@@ -422,7 +422,7 @@
 	       #+clim-sdl            :clim-sdl
 	       #+clim-clx            :clim-clx
 	       #+clim-graphic-forms  :clim-graphic-forms
-	       #+clim-opencl         :clim-opengl 
+	       #+clim-opengl         :clim-opengl 
 	       #+clim-beagle         :clim-beagle
 	       #+clim-gtkairo        :clim-gtkairo
 	       #+clim-null           :clim-null

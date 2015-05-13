@@ -146,7 +146,7 @@
 	(baseline (text-style-ascent text-style medium)))
     (do ((pos (position #\Newline string :start start :end end)
 	      (position #\Newline string :start (1+ pos) :end end)))
-	((sdl pos) (values width height x y baseline))
+	((null pos) (values width height x y baseline))
       (let ((start start)
 	    (end pos))
 	(setf x (- end start))

@@ -7,7 +7,7 @@
 
 ;;; CLIM-Examples depends on having at least one backend loaded.
 (defsystem :clim-examples
-    :depends-on (:mcclim)
+    :depends-on (:clim)
     :components
     ((:module "Examples"
               :components

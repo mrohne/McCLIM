@@ -41,10 +41,12 @@
 
 (defmethod initialize-instance :after ((port sdl-port) &rest initargs)
   (declare (ignore initargs))
-  (setf (slot-value port 'id) (gensym "SDL-PORT-"))
-  ;; FIXME: it seems bizarre for this to be necessary
+  (setf (slot-value port 'id) (sdl2:init :everything))
   (push (make-instance 'sdl-frame-manager :port port)
-	(slot-value port 'climi::frame-managers)))
+	(slot-value port 'climi::frame-managers))
+  (setf (slot-value port 'pointer)
+	(make-instance 'sdl-pointer :port port))
+  )
 
 (defmethod print-object ((object sdl-port) stream)
   (print-unreadable-object (object stream :identity t :type t)
