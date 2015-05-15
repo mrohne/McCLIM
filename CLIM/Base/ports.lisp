@@ -37,7 +37,7 @@
 ;;;   and neither is currently a complete backend we would want to make
 ;;;   a default.  Put them after CLX, so that they won't actually be reached.
 (defvar *server-path-search-order*
-    '(:gtkairo :sdl :beagle :graphic-forms :clx :null))
+    '(:graphic-forms :gtkairo :sdl :beagle :clx :null))
 
 (defun find-default-server-path ()
   (loop for port in *server-path-search-order*
