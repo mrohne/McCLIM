@@ -48,43 +48,52 @@
 #+ccl
 (progn
   #+darwin
-  (ignore-errors 
-    (require 'cocoa)
-    (pushnew :clim-beagle *features*)))
+  (progn
+    (ignore-errors
+      (require 'sdl2)
+      (pushnew :clim-sdl *features*))
+    (ignore-errors
+      (require 'cocoa)
+      (pushnew :clim-beagle *features*))))
 
 ;;; SBCL on Darwin - use SDL
 #+sbcl
 (progn
   #+darwin
-  (ignore-errors
-    (pushnew :clim-sdl *features*)))
+  (progn
+    (ignore-errors
+      (require 'sdl2)
+      (pushnew :clim-sdl *features*))
+    (ignore-errors
+      (require 'clx)
+      (pushnew :clim-clx *features*))))
 
 (defsystem :clim-system
   :components 
-  ((:module "System"
+  ((:module "System/Fix"
 	    :components
 	    ((:file "patch")
-	     (:module "Fix"
-		      :components
-		      ((:file   #+cmu       "fix-cmu"
-				#+scl       "fix-scl"
-				#+excl      "fix-acl"
-				#+sbcl      "fix-sbcl"
-				#+openmcl   "fix-openmcl"
-				#+lispworks "fix-lispworks"
-				#+clisp     "fix-clisp")))
-	     (:file "package")
-	     (:module "MP"
-		      :components
-		      ((:file #.(first
-				 (list
-				  #+cmu                     "mp-cmu"
-				  #+scl                     "mp-scl"
-				  #+sb-thread               "mp-sbcl"
-				  #+excl                    "mp-acl"
-				  #+openmcl                 "mp-openmcl"
-				  #+lispworks               "mp-lw"
-				  #| fall back |#           "mp-nil")))))))))
+	     (:file   
+	      #+cmu       "fix-cmu"
+	      #+scl       "fix-scl"
+	      #+excl      "fix-acl"
+	      #+sbcl      "fix-sbcl"
+	      #+openmcl   "fix-openmcl"
+	      #+lispworks "fix-lispworks"
+	      #+clisp     "fix-clisp")))
+   (:file "package")
+   (:module "System/MP"
+	    :components
+	    ((:file 
+	      #.(first
+		 (list
+		  #+cmu                     "mp-cmu"
+		  #+scl                     "mp-scl"
+		  #+sb-thread               "mp-sbcl"
+		  #+excl                    "mp-acl"
+		  #+openmcl                 "mp-openmcl"
+		  #+lispworks               "mp-lw"
+		  #| fall back |#           "mp-nil")))))))
 
 (defsystem :clim-base
   :depends-on (:clim-system :spatial-trees (:version "flexichain" "1.5.1"))
@@ -279,7 +288,7 @@
    (:file "Extensions/tab-layout")))
 
 (defsystem :clim-sdl
-    :depends-on (:clim-core :sdl2)
+    :depends-on (:clim-core :sdl2 :trivial-channels :bordeaux-threads)
     :components
     ((:module "Backends/SDL"
               :components

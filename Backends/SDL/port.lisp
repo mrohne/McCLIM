@@ -20,33 +20,46 @@
 
 (in-package :clim-sdl)
 
+;;; Hook into the backend selection mechanism
+(pushnew :sdl climi::*server-path-search-order*)
+(defparameter *default-server-path* (list :sdl))
+(setf (get :sdl :port-type) 'sdl-port)
+(setf (get :sdl :server-path-parser) 'parse-sdl-server-path)
+(defun parse-sdl-server-path (path) 
+  (assert (eq (first path) :sdl))
+  (values path))
+
 (defclass sdl-pointer (standard-pointer)
   ((cursor :accessor pointer-cursor :initform :upper-left)
    (x :initform 0)
    (y :initform 0)))
 
 (defclass sdl-port (basic-port)
-  ((id)
-   (pointer :accessor port-pointer :initform (make-instance 'sdl-pointer))
+  ((id :initform nil)
+   (pointer :initform nil :accessor port-pointer)
    (window :initform nil :accessor sdl-port-window)))
-
-(defun parse-sdl-server-path (path)
-  path)
-
-;;; FIXME: if :port-type and :server-path-parser aren't CLIM-specified
-;;; keywords, they should be altered to be in some mcclim-internal
-;;; package instead.
-(setf (get :sdl :port-type) 'sdl-port)
-(setf (get :sdl :server-path-parser) 'parse-sdl-server-path)
 
 (defmethod initialize-instance :after ((port sdl-port) &rest initargs)
   (declare (ignore initargs))
-  (setf (slot-value port 'id) (sdl2:init :everything))
-  (push (make-instance 'sdl-frame-manager :port port)
+  (push (make-instance 'sdl-frame-manager :port port) 
 	(slot-value port 'climi::frame-managers))
   (setf (slot-value port 'pointer)
 	(make-instance 'sdl-pointer :port port))
-  )
+  (setf (slot-value port 'id) (sdl2:init :timer :video :events))
+  (setf (slot-value port 'window)
+	(sdl2:in-main-thread () 
+	  (sdl2:create-window :title "CLIM window" :flags (list :opengl :resizable :allow-highdpi))))
+  (when clim-sys:*multiprocessing-p*
+    (setf (port-event-process port)
+	  (clim-sys:make-process
+	   (lambda ()
+	     (loop
+		(with-simple-restart
+		    (restart-event-loop
+		     "Restart SDL event loop.")
+		  (loop
+		     (process-next-event port)))))
+	   :name (format nil "~S's event process." port)))))
 
 (defmethod print-object ((object sdl-port) stream)
   (print-unreadable-object (object stream :identity t :type t)
@@ -92,8 +105,10 @@
 (defmethod port-disable-sheet ((port sdl-port) (mirror mirrored-sheet-mixin))
   nil)
 
-(defmethod destroy-port :before ((port sdl-port))
-  nil)
+(defmethod destroy-port :after ((port sdl-port))
+  #+sdl-destroy-window
+  (sdl2:in-main-thread () (sdl2:destroy-window (slot-value port 'window)))
+  (sdl2:quit))
 
 (defmethod port-motion-hints ((port sdl-port) (mirror mirrored-sheet-mixin))
   nil)
@@ -104,14 +119,20 @@
 
 (defmethod get-next-event
     ((port sdl-port) &key wait-function (timeout nil))
-  (declare (ignore wait-function timeout))
-  nil)
+  (declare (ignore wait-function))
+  (sdl2:with-sdl-event (event)
+    (sdl2:in-main-thread (:no-event t)
+      (if (sdl2:next-event event :wait timeout) event :timeout))))
 
 (defmethod make-graft
     ((port sdl-port) &key (orientation :default) (units :device))
-  (make-instance 'sdl-graft
-                 :port port :mirror (gensym)
-                 :orientation orientation :units units))
+  (let ((graft (make-instance 'sdl-graft
+			      :port port :mirror (gensym)
+			      :orientation orientation :units units)))
+    (setf (sheet-region graft) 
+	  (make-bounding-rectangle 0 0 800 600))
+    (push graft (port-grafts port))
+    (values graft)))
 
 (defmethod make-medium ((port sdl-port) sheet)
   (make-instance 'sdl-medium :sheet sheet))
@@ -154,7 +175,7 @@
   nil)
 
 (defmethod graft ((port sdl-port))
-  (first (climi::port-grafts port)))
+  (first (port-grafts port)))
 
 (defmethod port-allocate-pixmap ((port sdl-port) sheet width height)
   (declare (ignore sheet width height))
