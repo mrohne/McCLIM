@@ -225,6 +225,7 @@
 (setf (get :x11 :server-path-parser) 'parse-clx-server-path)
 (setf (get :clx :port-type) 'clx-port)
 (setf (get :clx :server-path-parser) 'parse-clx-server-path)
+(defparameter *default-server-path* (list :clx :host "unix"))
 
 (defgeneric initialize-clx (port))
 

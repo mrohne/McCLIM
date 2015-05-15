@@ -21,10 +21,10 @@
 (in-package :clim-sdl)
 
 ;;; Hook into the backend selection mechanism
-(pushnew :sdl climi::*server-path-search-order*)
-(defparameter *default-server-path* (list :sdl))
 (setf (get :sdl :port-type) 'sdl-port)
 (setf (get :sdl :server-path-parser) 'parse-sdl-server-path)
+(defparameter *default-server-path* (list :sdl))
+
 (defun parse-sdl-server-path (path) 
   (assert (eq (first path) :sdl))
   (values path))
