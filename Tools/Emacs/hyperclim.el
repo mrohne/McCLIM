@@ -71,7 +71,7 @@
 ;;; CLIM spec datasets
 
 (setq clim-gilberth-spec 
- '("http://www.stud.uni-karlsruhe.de/~unk6/clim-spec/"
+ '("http://bauhh.dyndns.org:8000/clim-spec/"
    ("+yellow+" . "13-3.html#_700") ("+white+" . "13-3.html#_702")
    ("+transparent-ink+" . "13-4.html#_710")
    ("+textual-view+" . "23-6.html#_1218")
