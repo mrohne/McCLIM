@@ -569,7 +569,7 @@ is called. Used to determine if any editing has been done by user")))
 	     estream
 	     #'(lambda (s)
 		 (handler-bind
-		     ((error
+		     ((file-error
 		       #'(lambda (c)
 			   (format *trace-output*
                                    "accepting-values accept condition: ~A~%"
