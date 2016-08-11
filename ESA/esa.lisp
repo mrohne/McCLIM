@@ -110,7 +110,7 @@ current message was set."))
    :display-time :command-loop
    :incremental-redisplay t))
 
-(defmethod handle-repaint ((pane minibuffer-pane) region)
+(defmethod repaint-sheet ((pane minibuffer-pane) region)
   (when (and (message pane)
              (> (get-universal-time)
                 (+ *minimum-message-time* (message-time pane))))
@@ -128,7 +128,7 @@ current message was set."))
 
 (defun display-minibuffer (frame pane)
   (declare (ignore frame))
-  (handle-repaint pane +everywhere+))
+  (dispatch-repaint pane +everywhere+))
 
 (defmethod stream-accept :around ((pane minibuffer-pane) type &rest args)
   (declare (ignore args))
