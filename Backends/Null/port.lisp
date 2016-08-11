@@ -63,27 +63,6 @@
 (defmethod destroy-mirror ((port null-port) (sheet mirrored-sheet-mixin))
   ())
 
-(defmethod mirror-transformation ((port null-port) mirror)
-  ())
-
-
-(defmethod port-set-sheet-region ((port null-port) (graft graft) region)
-  ())
-
-;; these don't exist
-;;;(defmethod port-set-sheet-transformation
-;;;    ((port null-port) (graft graft) transformation)
-;;;  ())
-;;;
-;;;(defmethod port-set-sheet-transformation
-;;;    ((port null-port) (sheet mirrored-sheet-mixin) transformation)
-;;;  ())
-
-(defmethod port-set-sheet-region
-    ((port null-port) (sheet mirrored-sheet-mixin) region)
-  (declare (ignore region))
-  nil)
-
 (defmethod port-enable-sheet ((port null-port) (mirror mirrored-sheet-mixin))
   nil)
 
