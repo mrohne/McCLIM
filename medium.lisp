@@ -335,18 +335,7 @@
 
 
 ;;; MEDIUM class
-
-(defclass transform-coordinates-mixin ()
-  ;; This class is reponsible for transforming coordinates in an
-  ;; :around method on medium-draw-xyz. It is currently mixed in into
-  ;; basic-medium and clim-stream-pane. This probably is not the right
-  ;; thing todo. Either clim-stream-pane becomes a basic-medium too or
-  ;; the medium of a stream becomes not the stream itself. So consider
-  ;; this as a hotfix.
-  ;; --GB 2003-05-25
-  ())
-
-(defclass basic-medium (transform-coordinates-mixin medium)
+(defclass basic-medium (medium)
   ((foreground :initarg :foreground
                :initform +black+
                :accessor medium-foreground)
@@ -444,7 +433,8 @@
 (defgeneric medium-device-region (medium))
 
 (defmethod medium-device-region ((medium medium))
-  (sheet-device-region (medium-sheet medium)))
+  (transform-region (sheet-device-transformation (medium-sheet medium))
+		    (sheet-device-region (medium-sheet medium))))
 
 
 ;;; Line-Style class
@@ -556,151 +546,14 @@
 
 ;;; Medium-specific Drawing Functions
 
-(defmethod medium-draw-point* :around ((medium transform-coordinates-mixin) x y)
-  (let ((tr (medium-transformation medium)))
-    (with-transformed-position (tr x y)
-      (call-next-method medium x y))))
-
-(defmethod medium-draw-points* :around ((medium transform-coordinates-mixin) coord-seq)
-  (let ((tr (medium-transformation medium)))
-    (with-transformed-positions (tr coord-seq)
-      (call-next-method medium coord-seq))))
-
-(defmethod medium-draw-line* :around ((medium transform-coordinates-mixin) x1 y1 x2 y2)
-  (let ((tr (medium-transformation medium)))
-    (with-transformed-position (tr x1 y1)
-      (with-transformed-position (tr x2 y2)
-        (call-next-method medium x1 y1 x2 y2)))))
-
-(defmethod medium-draw-lines* :around ((medium transform-coordinates-mixin) coord-seq)
-  (let ((tr (medium-transformation medium)))
-    (with-transformed-positions (tr coord-seq)
-      (call-next-method medium coord-seq))))
-
-(defmethod medium-draw-polygon* :around ((medium transform-coordinates-mixin) coord-seq closed filled)
-  (let ((tr (medium-transformation medium)))
-    (with-transformed-positions (tr coord-seq)
-      (call-next-method medium coord-seq closed filled))))
-
 (defun expand-rectangle-coords (left top right bottom)
   "Expand the two corners of a rectangle into a polygon coord-seq"
   (vector left top right top right bottom left bottom))
 
-(defmethod medium-draw-rectangle* :around ((medium transform-coordinates-mixin) left top right bottom filled)
-  (let ((tr (medium-transformation medium)))
-    (if (rectilinear-transformation-p tr)
-        (multiple-value-bind (left top right bottom)
-            (transform-rectangle* tr left top right bottom)
-          (call-next-method medium left top right bottom filled))
-        (medium-draw-polygon* medium (expand-rectangle-coords left top right bottom)
-                              t filled))) )
-
 (defgeneric medium-draw-rectangles* (medium coord-seq filled))
-
-(defmethod medium-draw-rectangles* :around ((medium transform-coordinates-mixin) position-seq filled)
-  (let ((tr (medium-transformation medium)))
-    (if (rectilinear-transformation-p tr)
-        (call-next-method medium (transform-positions tr position-seq) filled)
-        (do-sequence ((left top right bottom) position-seq)
-          (medium-draw-polygon* medium (vector left top
-                                               left bottom
-                                               right bottom
-                                               right top)
-                                t filled)))))
-
-(defmethod medium-draw-ellipse* :around ((medium transform-coordinates-mixin) center-x center-y
-                                         radius-1-dx radius-1-dy radius-2-dx radius-2-dy
-                                         start-angle end-angle filled)
-  (let* ((ellipse (make-elliptical-arc* center-x center-y
-                                        radius-1-dx radius-1-dy
-                                        radius-2-dx radius-2-dy
-                                        :start-angle start-angle
-                                        :end-angle end-angle))
-         (transformed-ellipse (transform-region (medium-transformation medium)
-                                                ellipse))
-         (start-angle (ellipse-start-angle transformed-ellipse))
-         (end-angle (ellipse-end-angle transformed-ellipse)))
-    (multiple-value-bind (center-x center-y) (ellipse-center-point* transformed-ellipse)
-      (multiple-value-bind (radius-1-dx radius-1-dy radius-2-dx radius-2-dy)
-          (ellipse-radii transformed-ellipse)
-        (call-next-method medium center-x center-y
-                          radius-1-dx radius-1-dy
-                          radius-2-dx radius-2-dy
-                          start-angle end-angle filled)))))
-
-(defmethod medium-draw-circle* :around ((medium transform-coordinates-mixin) center-x center-y
-                                         radius start-angle end-angle filled)
-  (let* ((ellipse (make-elliptical-arc* center-x center-y
-                                        radius 0
-                                        0 radius
-                                        :start-angle start-angle
-                                        :end-angle end-angle))
-         (transformed-ellipse (transform-region (medium-transformation medium)
-                                                ellipse))
-         (start-angle (ellipse-start-angle transformed-ellipse))
-         (end-angle (ellipse-end-angle transformed-ellipse)))
-    (multiple-value-bind (center-x center-y) (ellipse-center-point* transformed-ellipse)
-      (call-next-method medium center-x center-y radius start-angle end-angle filled))))
-
-(defmethod medium-draw-text* :around ((medium transform-coordinates-mixin) string x y
-                                      start end
-                                      align-x align-y
-                                      toward-x toward-y transform-glyphs)
-  ;;!!! FIX ME!
-  (let ((tr (medium-transformation medium)))
-    (with-transformed-position (tr x y)
-      (call-next-method medium string x y
-                        start end
-                        align-x align-y
-                        toward-x toward-y transform-glyphs))))
 
 (defgeneric medium-draw-glyph
   (medium element x y align-x align-y toward-x toward-y transform-glyphs))
-
-(defmethod medium-draw-glyph :around ((medium transform-coordinates-mixin) element x y
-                                      align-x align-y toward-x toward-y
-                                      transform-glyphs)
-  (let ((tr (medium-transformation medium)))
-    (with-transformed-position (tr x y)
-      (call-next-method medium element x y
-                        align-x align-y toward-x toward-y
-                        transform-glyphs))))
-
-(defmethod medium-copy-area :around ((from-drawable transform-coordinates-mixin)
-                                     from-x from-y width height
-                                     to-drawable to-x to-y)
-  (with-transformed-position ((medium-transformation from-drawable)
-                              from-x from-y)
-    (call-next-method from-drawable from-x from-y width height
-                      to-drawable to-x to-y)))
-
-(defmethod medium-copy-area :around (from-drawable from-x from-y width height
-                                     (to-drawable  transform-coordinates-mixin)
-                                     to-x to-y)
-  (with-transformed-position ((medium-transformation to-drawable)
-                              to-x to-y)
-    (call-next-method from-drawable from-x from-y width height
-                      to-drawable to-x to-y)))
-
-;;; Fall-through Methods For Multiple Objects Drawing Functions
-
-(defmethod medium-draw-points* ((medium transform-coordinates-mixin) coord-seq)
-  (let ((tr (invert-transformation (medium-transformation medium))))
-    (with-transformed-positions (tr coord-seq)
-      (do-sequence ((x y) coord-seq)
-	(medium-draw-point* medium x y)))))
-
-(defmethod medium-draw-lines* ((medium transform-coordinates-mixin) position-seq)
-  (let ((tr (invert-transformation (medium-transformation medium))))
-    (with-transformed-positions (tr position-seq)
-      (do-sequence ((x1 y1 x2 y2) position-seq)
-	(medium-draw-line* medium x1 y1 x2 y2)))))
-
-(defmethod medium-draw-rectangles* ((medium transform-coordinates-mixin) coord-seq filled)
-  (let ((tr (invert-transformation (medium-transformation medium))))
-    (with-transformed-positions (tr coord-seq)
-      (do-sequence ((x1 y1 x2 y2) coord-seq)
-	(medium-draw-rectangle* medium x1 y1 x2 y2 filled)))))
 
 
 ;;; Other Medium-specific Output Functions
