@@ -369,7 +369,7 @@
 
 ;;; Repaint
 
-(defmethod handle-repaint ((pane pixie-slider-pane) region)
+(defmethod repaint-sheet ((pane pixie-slider-pane) region)
   (declare (ignore region))
   (with-special-choices (pane)
     (let ((tr (vertical-gadget-orientation-transformation pane)))
@@ -651,7 +651,7 @@
 
 ;;; Repaint
 
-(defmethod handle-repaint ((pane pixie-scroll-bar-pane) region)
+(defmethod repaint-sheet ((pane pixie-scroll-bar-pane) region)
   (declare (ignore region))
   (with-special-choices (pane)
     (let* ((tr (vertical-gadget-orientation-transformation pane))
@@ -714,7 +714,7 @@
 
 (define-pixie-gadget menu-bar pixie-menu-bar-pane :enabled t)
 
-(defmethod handle-repaint ((pane pixie-menu-bar-pane) region)
+(defmethod repaint-sheet ((pane pixie-menu-bar-pane) region)
   (declare (ignore region))
   (with-special-choices (pane)
     (let* ((region (sheet-region pane))
@@ -763,7 +763,7 @@
 (defclass pixie-menu-button-leaf-pane (pixie-menu-button-pane menu-button-leaf-pane) ())
 (define-pixie-gadget menu-button-leaf-pane pixie-menu-button-leaf-pane)
 
-(defmethod handle-repaint ((pane pixie-menu-button-leaf-pane) region)
+(defmethod repaint-sheet ((pane pixie-menu-button-leaf-pane) region)
   (declare (ignore region))
   (with-slots (armed) pane
     ;; XXX only do this when the gadget is realized.
@@ -799,7 +799,7 @@
 			   :higher 10)
       (call-next-method)))
 
-(defmethod handle-repaint ((pane pixie-menu-button-submenu-pane) region)
+(defmethod repaint-sheet ((pane pixie-menu-button-submenu-pane) region)
   (declare (ignore region))
   (with-slots (submenu-frame client) pane
     (when (sheet-mirror pane) ;XXX only do this when the gadget is realized.
@@ -870,7 +870,7 @@
       (draw-line* pane x1 y1 x2 y2 :ink (pane-inking-color pane) :line-thickness 2)
       (draw-line* pane x2 y1 x1 y2 :ink (pane-inking-color pane) :line-thickness 2))))
 
-(defmethod handle-repaint ((pane pixie-toggle-button-pane) region)
+(defmethod repaint-sheet ((pane pixie-toggle-button-pane) region)
   (declare (ignore region))
   (when (sheet-grafted-p pane)
     (with-special-choices (pane)
@@ -949,7 +949,7 @@
       (setf pressedp nil)
       (dispatch-repaint pane +everywhere+))))
 
-(defmethod handle-repaint ((pane pixie-push-button-pane) region)
+(defmethod repaint-sheet ((pane pixie-push-button-pane) region)
   (declare (ignore region))
   (with-slots (armed dragging pressedp) pane
     (with-bounding-rectangle* (x1 y1 x2 y2) (sheet-region pane)
@@ -972,7 +972,7 @@
 
 (define-pixie-gadget submenu-border pixie-submenu-border-pane)
 
-(defmethod handle-repaint ((pane pixie-submenu-border-pane) region)
+(defmethod repaint-sheet ((pane pixie-submenu-border-pane) region)
   (declare (ignore region))
   (with-slots (border-width) pane
     (with-bounding-rectangle* (x1 y1 x2 y2) (sheet-region pane)
@@ -1006,7 +1006,7 @@
                                             :initial-contents (slot-value pane 'value)))
     (stream-add-output-record pane (area pane))))
 
-(defmethod handle-repaint ((pane pixie-text-field-pane) region)
+(defmethod repaint-sheet ((pane pixie-text-field-pane) region)
   (declare (ignore region))
   (with-special-choices (pane)
     (with-sheet-medium (medium pane)
