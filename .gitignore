@@ -1,6 +1,3 @@
-*.fasl
-.#*
-*#
 *~
 /bugs.lisp
 /Documentation/Manual/tempfiles-stamp
