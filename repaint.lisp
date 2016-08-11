@@ -37,12 +37,10 @@
   (declare (ignore region))
   nil)
 
-(defmethod repaint-sheet ((sheet basic-sheet) region)
-  (map-over-sheets-overlapping-region #'(lambda (s)
-					  (handle-repaint s region))
-				      sheet
-				      region))
-
+(defmethod repaint-sheet ((sheet basic-sheet) region)  
+  (declare (ignore region))
+  nil)
+	 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;
 ;;; Repaint protocol classes.
@@ -61,13 +59,22 @@
   (when (sheet-mirror sheet)            ;only dispatch repaints, when the sheet has a mirror
     (queue-repaint sheet (make-instance 'window-repaint-event
                                         :sheet sheet
-                                        :region (transform-region
-                                                 (sheet-native-transformation sheet)
-                                                 region)))))
+                                        :region (transform-region (sheet-native-transformation sheet) region)))))
 
 (defmethod handle-event ((sheet standard-repainting-mixin)
 			 (event window-repaint-event))
-  (handle-repaint sheet (window-event-region event)))
+  (handle-repaint (event-sheet event) (window-event-region event)))
+
+(defmethod handle-repaint ((sheet standard-repainting-mixin) region)    
+  (repaint-sheet sheet region)
+  (labels ((handle-rest (rest)
+	     (when rest
+	       (destructuring-bind (child . rest) rest
+		 (handle-rest rest)
+		 (let ((region (untransform-region (sheet-transformation child) region)))
+		   (when (region-intersects-region-p region (sheet-region child))
+		     (handle-repaint child region)))))))
+    (handle-rest (sheet-children sheet))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;
@@ -77,14 +84,32 @@
 
 (defmethod dispatch-event
     ((sheet immediate-repainting-mixin) (event window-repaint-event))
-  (handle-repaint sheet (window-event-region event)))
+  (when (sheet-mirror sheet)
+    (handle-repaint (event-sheet event) (window-event-region event))))
 
 (defmethod dispatch-repaint ((sheet immediate-repainting-mixin) region)
   (handle-repaint sheet region))
 
 (defmethod handle-event ((sheet immediate-repainting-mixin)
 			 (event window-repaint-event))
-  (handle-repaint sheet (window-event-region event)))
+  (handle-repaint (event-sheet event) (window-event-region event)))
+
+(defmethod handle-event ((sheet immediate-repainting-mixin)
+			 (event window-repaint-event))
+  (handle-repaint (event-sheet event) (window-event-region event)))
+
+(defmethod handle-repaint ((sheet immediate-repainting-mixin) region)    
+  (repaint-sheet sheet region)
+  (labels ((handle-rest (rest)
+	     (when rest
+	       (destructuring-bind (child . rest) rest
+		 (handle-rest rest)
+		 (let ((region (untransform-region (sheet-transformation child) region)))
+		   (when (region-intersects-region-p region (sheet-region child))
+		     (handle-repaint child region)))))))
+    (handle-rest (sheet-children sheet))))
+
+
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;
@@ -97,22 +122,12 @@
     ;; Only dispatch repaints, when the sheet has a mirror.
     (queue-repaint sheet (make-instance 'window-repaint-event
 			   :sheet sheet
-			   :region (transform-region
-				    (sheet-native-transformation sheet)
-				    region)))))
+			   :region (transform-region (sheet-native-transformation sheet) region)))))
 
-;;; I know what the spec says about SHEET-MUTE-REPAINTING-MIXIN, but I don't
-;;; think it's right; "repaint-sheet that does nothing" makes no sense.
-;;; -- moore
-#+nil
 (defmethod repaint-sheet ((sheet sheet-mute-repainting-mixin) region)
   (declare (ignorable sheet region))
   (format *trace-output* "repaint ~S~%" sheet)
   (values))
-
-(defmethod handle-repaint ((sheet sheet-mute-repainting-mixin) region)
-  (declare (ignore region))
-  nil)
 
 (defclass clim-repainting-mixin
     (#+clim-mp standard-repainting-mixin #-clim-mp immediate-repainting-mixin)
