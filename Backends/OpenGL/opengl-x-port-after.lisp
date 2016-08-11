@@ -443,16 +443,6 @@
       (push graft (port-grafts port))
       graft)))
 
-(defmethod port-set-sheet-region ((port opengl-port) (graft graft) region)
-  (declare (ignore region)
-	   (ignorable port graft))
-  nil)
-
-(defmethod port-set-sheet-transformation ((port opengl-port) (graft graft) transformation)
-  (declare (ignore transformation)
-	   (ignorable port graft))
-  nil)
-
 (defmethod graft ((port opengl-port))
   (first (port-grafts port)))
 
@@ -523,16 +513,6 @@
     (with-slots (signature->sheet) port
       (remhash 0 signature->sheet))
     (port-unregister-mirror port sheet mirror)))
-
-(defmethod port-set-sheet-region ((port opengl-port) (sheet top-level-sheet-pane) region)
-  (multiple-value-bind (x1 y1 x2 y2) (bounding-rectangle* region)
-    (xlib-gl:XResizeWindow (opengl-port-display port) (sheet-direct-mirror sheet)
-			(round (- x2 x1)) (round (- y2 y1)))))
-
-(defmethod port-set-sheet-transformation ((port opengl-port) (sheet top-level-sheet-pane) transformation)
-  (multiple-value-bind (x y) (transform-position transformation 0 0)
-    (xlib-gl:XMoveWindow (opengl-port-display port) (sheet-direct-mirror sheet)
-		      (round x) (round y))))
 
 (defmethod port-compute-native-region ((port opengl-port) (sheet top-level-sheet-pane))
   (declare (ignorable port))
