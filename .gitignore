@@ -1,0 +1,14 @@
+*~
+#*#
+*.orig
+*.fasl
+*.lx??fsl
+*.dx??fsl
+*.aux
+*.idx
+*.log
+*.out
+*.toc
+*.pdf
+.plant/
+.DS_Store
