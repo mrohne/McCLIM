@@ -716,6 +716,9 @@ known gestures."
 
 (defgeneric (setf pointer-sheet) (sheet pointer))
 
+(defmethod (setf pointer-sheet) (sheet pointer)
+  (setf (port-pointer-sheet (port pointer)) sheet))
+
 (defgeneric pointer-button-state (pointer))
 
 (defgeneric pointer-modifier-state (pointer))

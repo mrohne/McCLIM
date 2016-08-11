@@ -21,6 +21,8 @@
 
 (in-package :clim-internals)
 
+(eval-when (:execute :compile-toplevel :load-toplevel)
+  (declaim (optimize (debug 3) (safety 3) (space 0) (speed 0))))
 ;;; Note: in the methods defined on output streams, I often use
 ;;;	  the sheet's medium as the argument to the draw-* routines.
 ;;;	  This is so that they don't get recorded if the stream also
