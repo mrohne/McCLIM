@@ -37,6 +37,8 @@
 
 (in-package :clim-internals)
 
+(declaim (optimize (safety 3) (debug 3) (speed 0) (space 0)))
+
 ;; Spec function.
 (defgeneric menu-choose
     (items
@@ -111,51 +113,58 @@
      cell-align-x cell-align-y)
   (declare (ignore default-item))
   (orf item-printer #'print-menu-item)
-  (format-items items
-                :stream stream
-                :printer
-                (lambda (item stream)
-                  (ecase (menu-item-option item :type :item)
-                    (:item
-                     ;; This is a normal item, just output.
-                     (let ((activep (menu-item-option item :active t)))
-                       (with-presentation-type-decoded (name params options)
-                           presentation-type
-                         (let ((*allow-sensitive-inferiors* activep))
-                           (with-text-style
-                               (stream (menu-item-option
-                                        item :style
-                                        '(:sans-serif nil nil)))
-                             (with-output-as-presentation
-                                 (stream
-                                  item
-                                  `((,name ,@params)
-                                    :description ,(getf (menu-item-options item) :documentation)
-                                    ,@options))
-                               (funcall item-printer item stream)))))))
-                    (:label
-                     ;; This is a static label, it should not be
-                     ;; mouse-sensitive, but not grayed out either.
-                     (with-text-style (stream (menu-item-option
-                                               item :style
-                                               '(:sans-serif nil nil)))
-                       (funcall item-printer item stream)))
-                    (:divider
-                     ;; FIXME: Should draw a line instead.
-                     (with-text-style (stream (menu-item-option
-                                               item :style
-                                               '(:sans-serif :italic nil)))
-                       (funcall item-printer item stream)))))
-                :presentation-type nil
-                :x-spacing x-spacing
-                :y-spacing y-spacing
-                :n-columns n-columns
-                :n-rows n-rows
-                :max-width max-width
-                :max-height max-height
-                :cell-align-x cell-align-x
-                :cell-align-y (or cell-align-y :top)
-                :row-wise row-wise))
+  (multiple-value-bind (x1 y1)
+      (stream-cursor-position stream)
+    (format-items items
+		  :stream stream
+		  :printer
+		  (lambda (item stream)
+		    (ecase (menu-item-option item :type :item)
+		      (:item
+		       ;; This is a normal item, just output.
+		       (let ((activep (menu-item-option item :active t)))
+			 (with-presentation-type-decoded (name params options)
+			     presentation-type
+			   (let ((*allow-sensitive-inferiors* activep))
+			     (with-text-style
+				 (stream (menu-item-option
+					  item :style
+					  '(:sans-serif nil nil)))
+			       (with-output-as-presentation
+				   (stream
+				    item
+				    `((,name ,@params)
+				      :description ,(getf (menu-item-options item) :documentation)
+				      ,@options))
+				 (funcall item-printer item stream)))))))
+		      (:label
+		       ;; This is a static label, it should not be
+		       ;; mouse-sensitive, but not grayed out either.
+		       (with-text-style (stream (menu-item-option
+						 item :style
+						 '(:sans-serif nil nil)))
+			 (funcall item-printer item stream)))
+		      (:divider
+		       ;; FIXME: Should draw a line instead.
+		       (with-text-style (stream (menu-item-option
+						 item :style
+						 '(:sans-serif :italic nil)))
+			 (funcall item-printer item stream)))))
+		  :presentation-type nil
+		  :x-spacing x-spacing
+		  :y-spacing y-spacing
+		  :n-columns n-columns
+		  :n-rows n-rows
+		  :max-width max-width
+		  :max-height max-height
+		  :cell-align-x cell-align-x
+		  :cell-align-y (or cell-align-y :top)
+		  :row-wise row-wise)
+    (multiple-value-bind (x2 y2) (stream-cursor-position stream)
+      (change-space-requirements stream 
+				 :resize-frame nil 
+				 :height (- y2 y1)
+				 :width (- x2 x1)))))
 
 (defclass menu-pane (clim-stream-pane)
   ()
@@ -183,24 +192,23 @@
                                *application-frame*))
          (fm (frame-manager associated-frame)))
     (with-look-and-feel-realization (fm associated-frame) ; hmm... checkme
-      (let* ((menu-stream (make-pane-1 fm associated-frame 'menu-pane))
-             (container (scrolling (:scroll-bar scroll-bars)
-                          menu-stream))
+      (let* ((menu (make-pane-1 fm associated-frame 'menu-pane))
+             (view (scrolling (:scroll-bar scroll-bars) menu))
 	     (frame (make-menu-frame (raising ()
 				       (if label
 					   (labelling (:label label
 						       :name 'label
 						       :label-alignment :top)
-					     container)
-					   container))
+					     view)
+					   view))
 				     :left nil
 				     :top nil)))
-        (adopt-frame fm frame)
+	(adopt-frame fm frame)
         (unwind-protect
              (progn
-               (setf (stream-end-of-line-action menu-stream) :allow
-                     (stream-end-of-page-action menu-stream) :allow)
-               (funcall continuation menu-stream))
+               (setf (stream-end-of-line-action menu) :allow
+                     (stream-end-of-page-action menu) :allow)
+               (funcall continuation menu))
           (when deexpose ; Checkme as well.
             (disown-frame fm frame)))))))
 
@@ -291,7 +299,7 @@ maximum size according to `frame')."
     (change-space-requirements menu
 			       :width menu-width
 			       :height menu-height
-                               :resize-frame t)
+                               :resize-frame nil)
 
     ;; If we have scroll-bars, we need to do some calibration of the
     ;; size of the viewport.
@@ -315,7 +323,7 @@ maximum size according to `frame')."
                                   :height (+ menu-height
                                              (- (pane-current-height (pane-scroller menu))
                                                 viewport-height))
-                                  :resize-frame t)))
+                                  :resize-frame nil)))
 
     ;; Modify the size and location of the frame as well.
     (let* ((top-level-pane (labels ((searching (pane)
@@ -342,11 +350,11 @@ maximum size according to `frame')."
               ;; Adjust for maximum position if the programmer has not
               ;; explicitly provided coordinates.
               (if (null x-position)
-               (when (> left max-left)
-                 (setf left max-left)))
+		  (when (> left max-left)
+		    (setf left max-left)))
               (if (null y-position)
-               (when (> top max-top)
-                 (setf top max-top)))
+		  (when (> top max-top)
+		    (setf top max-top)))
               (move-sheet top-level-pane
                           (max left 0) (max top 0)))))))))
 
@@ -358,23 +366,17 @@ maximum size according to `frame')."
 (defmethod menu-choose-from-drawer
     (menu presentation-type drawer
      &key x-position y-position cache unique-id id-test cache-value cache-test
-     default-presentation pointer-documentation)
+       default-presentation pointer-documentation)
   (declare (ignore cache unique-id
                    id-test cache-value cache-test default-presentation))
   (with-room-for-graphics (menu :first-quadrant nil)
     (funcall drawer menu presentation-type))
-  
-  (adjust-menu-size-and-position
-   menu
-   :x-position x-position
-   :y-position y-position)
-  
+
   (let ((*pointer-documentation-output* pointer-documentation))
-    (let ((*pointer-documentation-output* pointer-documentation))
-      (handler-case
-          (with-input-context (`(or ,presentation-type blank-area) :override t)
-              (object type event) 
-              (prog1 nil (loop (read-gesture :stream menu)))
-            (blank-area nil)
-            (t (values object event)))
-        (abort-gesture () nil)))))
+    (handler-case
+	(with-input-context (`(or ,presentation-type blank-area) :override t)
+	    (object type event) 
+	    (prog1 nil (loop (read-gesture :stream menu)))
+	  (blank-area nil)
+	  (t (values object event)))
+      (abort-gesture () nil))))
