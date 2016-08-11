@@ -76,14 +76,9 @@
   (declare (ignore x1 y1 x2 y2)) 
   nil)
 
-;; FIXME: Invert the transformation and apply it here, as the :around
-;; methods on transform-coordinates-mixin will cause it to be applied
-;; twice, and we need to undo one of those. The
-;; transform-coordinates-mixin stuff needs to be eliminated.
 (defmethod medium-draw-lines* ((medium null-medium) coord-seq)
-  (let ((tr (invert-transformation (medium-transformation medium))))
-    (declare (ignore tr))
-    nil))
+  (declare (ignore coord-seq))
+  nil)
 
 (defmethod medium-draw-polygon* ((medium null-medium) coord-seq closed filled)
   (declare (ignore coord-seq closed filled))
