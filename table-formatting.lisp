@@ -54,6 +54,8 @@
 
 (in-package :clim-internals)
 
+(declaim (optimize (safety 3) (debug 3) (speed 0) (space 0)))
+
 (defvar *table-suppress-update* nil
   "Used to control whether changes to table cells propagate upwards.")
 
