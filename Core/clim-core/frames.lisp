@@ -26,6 +26,9 @@
 
 (in-package :clim-internals)
 
+(eval-when (:execute :compile-toplevel :load-toplevel)
+  (declaim (optimize (debug 3) (safety 3) (space 0) (speed 0))))
+
 ;; *application-frame* is in decls.lisp
 (defvar *default-frame-manager* nil)
 
@@ -60,10 +63,6 @@
   (declare (ignore frame-manager frame command-name))
   nil)
 
-;;; Application-Frame class
-;;; XXX All these slots should move to a mixin or to standard-application-frame.
-;;; -- moore
-
 ; extension
 (defgeneric frame-schedule-timer-event (frame sheet delay token))
 
@@ -79,7 +78,29 @@ input focus. This is a McCLIM extension."))
    (graft :initform nil
 	  :initarg :graft
 	  :accessor graft)
-   (name :initarg :name
+   (state :initform :disowned :reader frame-state)
+   (manager :initform nil :accessor frame-manager)
+   (panes :initarg :panes :reader frame-panes)
+   (top-level-sheet :initform nil :reader frame-top-level-sheet)))
+
+(defmethod layout-frame ((frame basic-frame) &optional width height)
+  (with-slots (panes top-level-sheet) frame
+    (cond  ((and width height) ;; only resize if specified - sligth deviation from spec
+	    (resize-sheet top-level-sheet width height))
+	   ((or (and width (null height)) (and (null width) height))
+	    (error "LAYOUT-FRAME must be called with both WIDTH and HEIGHT or neither")))
+    (let ((sr (compose-space panes :width width :height height)))
+      (setq width (clamp (or width (space-requirement-width sr))
+			 (space-requirement-min-width sr)
+			 (space-requirement-max-width sr)))
+      (setq height (clamp (or height (space-requirement-height sr))
+			  (space-requirement-min-height sr)
+			  (space-requirement-max-height sr)))
+      (allocate-space panes width height))))
+
+(defclass standard-application-frame (basic-frame application-frame
+				      presentation-history-mixin)
+  ((name :initarg :name
 	 :reader frame-name)
    (pretty-name :initarg :pretty-name
 		:accessor frame-pretty-name)
@@ -185,7 +206,6 @@ documentation produced by presentations.")
       (frame-standard-output frame)))
 
 (defgeneric frame-geometry* (frame))
-
 (defmethod frame-geometry* ((frame standard-application-frame))
   "-> width height &optional top left"
   (let ((pane (frame-top-level-sheet frame)))
@@ -228,7 +248,7 @@ documentation produced by presentations.")
 
 (defmethod (setf frame-manager) (fm (frame application-frame))
   (let ((old-manager (frame-manager frame)))
-    (setf (%frame-manager frame) nil)
+    (setf (slot-value frame 'manager) nil)
     (when old-manager
       (disown-frame old-manager frame)
       (setf (frame-panes frame) nil)
@@ -445,8 +465,7 @@ documentation produced by presentations.")
     (declare (special *input-context* *input-wait-test* *input-wait-handler*
 		      *pointer-button-press-handler*))
     (when (eq (frame-state frame) :disowned) ; Adopt frame into frame manager
-      (adopt-frame (or (frame-manager frame) (find-frame-manager))
-		   frame))
+      (adopt-frame (find-frame-manager) frame))
     (unless (or (eq (frame-state frame) :enabled)
 		(eq (frame-state frame) :shrunk))
       (enable-frame frame))
@@ -645,8 +664,10 @@ documentation produced by presentations.")
     (setf (event-queue-port event-queue) nil))
   (setf (slot-value fm 'frames) (remove frame (slot-value fm 'frames)))
   (sheet-disown-child (graft frame) (frame-top-level-sheet frame))
-  (setf (%frame-manager frame) nil)
+  (setf (slot-value fm 'frames) (delete frame (slot-value fm 'frames)))
+  (setf (slot-value frame 'top-level-sheet) nil)
   (setf (slot-value frame 'state) :disowned)
+  (setf (slot-value frame 'manager) nil)
   (port-force-output (port fm))
   frame)
 
@@ -991,7 +1012,7 @@ frames and will not have focus.
 
 ;;; Menu frame class
 
-(defclass menu-frame ()
+(defclass menu-frame (basic-frame)
   ((left :initform 0 :initarg :left)
    (top :initform 0 :initarg :top)
    (min-width :initform nil :initarg :min-width)
@@ -1005,6 +1026,24 @@ frames and will not have focus.
 
 (defclass menu-unmanaged-top-level-sheet-pane (unmanaged-top-level-sheet-pane)
   ())
+(defmethod frame-geometry* ((frame menu-frame))
+  "-> width height &optional top left"
+  (with-slots (left top min-width min-height) frame
+    (with-bounding-rectangle* (x1 y1 x2 y2) 
+	(transform-region (sheet-delta-transformation (frame-top-level-sheet *application-frame*) nil)
+			  (sheet-region (frame-top-level-sheet *application-frame*)))
+      (let* ((sr (compose-space (frame-panes frame)))
+	     (max-width (bounding-rectangle-width (frame-panes *application-frame*)))
+	     (max-height (bounding-rectangle-height (frame-panes *application-frame*)))
+	     (width (clamp (space-requirement-width sr) 
+			   (max min-width (space-requirement-min-width sr))
+			   (min max-width (space-requirement-max-width sr))))
+	     (height (clamp (space-requirement-height sr) 
+			    (max min-height (space-requirement-min-height sr))
+			    (min max-height (space-requirement-max-height sr))))
+	     (left (clamp left x1 (- x2 width)))
+	     (top (clamp top y1 (- y2 height))))
+	(values width height left top)))))
 
 (defmethod adopt-frame ((fm frame-manager) (frame menu-frame))
   (setf (slot-value fm 'frames) (cons frame (slot-value fm 'frames)))
