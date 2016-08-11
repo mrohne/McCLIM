@@ -21,10 +21,6 @@
                 #:port-register-mirror
                 #:port-event-process
                 #:port-grafts
-                #:update-mirror-geometry
-                #:%sheet-mirror-region
-                #:%sheet-mirror-transformation
-                ;;
                 #:clamp
                 #:get-environment-variable
                 #:pixmap-sheet
