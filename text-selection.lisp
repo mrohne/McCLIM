@@ -250,7 +250,7 @@ the incoming selection."))
                             :initial-value +nowhere+))
         (new-region (reduce #'region-union (mapcar #'(lambda (x) (marking-region pane x)) new-markings)
                             :initial-value +nowhere+)))
-    (handle-repaint pane (region-exclusive-or old-region new-region))))
+    (dispatch-repaint pane (region-exclusive-or old-region new-region))))
 
 (defmethod eos/shift-drag ((pane extended-output-stream) event)
   (with-slots (point-1-x point-1-y) pane
