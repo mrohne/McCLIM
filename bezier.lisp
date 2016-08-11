@@ -106,12 +106,6 @@
       (when (stream-drawing-p stream)
 	(medium-draw-bezier-design* medium design)))))
 
-(defmethod medium-draw-bezier-design* :around 
-    ((medium transform-coordinates-mixin) design)
-  (let* ((tr (medium-transformation medium))
-         (design (transform-region tr design)))
-    (call-next-method medium design)))
-
 (defmethod replay-output-record ((record bezier-design-output-record) stream
 				 &optional
 				   (region +everywhere+)

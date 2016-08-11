@@ -790,7 +790,7 @@ position for the character."
 	    (multiple-value-bind (user-pixmap-x2 user-pixmap-y2)
 		(untransform-position world-transform pixmap-x2 pixmap-y2)
 	      (flet ((set-native (transform region sheet)
-		       (%%set-sheet-native-transformation transform sheet)
+		       (setf (slot-value sheet 'transformation) transform)
 		       (setf (slot-value sheet 'region) region)
 		       (invalidate-cached-regions sheet)
 		       (invalidate-cached-transformations sheet)))
