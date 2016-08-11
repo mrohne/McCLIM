@@ -615,9 +615,9 @@ time an indexed pattern is drawn.")
 
 (defmethod medium-copy-area ((from-drawable clx-medium) from-x from-y width height
                              (to-drawable clx-medium) to-x to-y)
-  (with-transformed-position ((sheet-native-transformation (medium-sheet from-drawable))
+  (with-transformed-position ((sheet-device-transformation (medium-sheet from-drawable))
                               from-x from-y)
-    (with-transformed-position ((sheet-native-transformation (medium-sheet to-drawable))
+    (with-transformed-position ((sheet-device-transformation (medium-sheet to-drawable))
                                 to-x to-y)
       (multiple-value-bind (width height) (transform-distance (medium-transformation from-drawable)
                                                               width height)
@@ -630,7 +630,7 @@ time an indexed pattern is drawn.")
 
 (defmethod medium-copy-area ((from-drawable clx-medium) from-x from-y width height
                              (to-drawable pixmap) to-x to-y)
-  (with-transformed-position ((sheet-native-transformation (medium-sheet from-drawable))
+  (with-transformed-position ((sheet-device-transformation (medium-sheet from-drawable))
                               from-x from-y)
     (xlib:copy-area (sheet-direct-mirror (medium-sheet from-drawable))
                     (medium-gcontext from-drawable +background-ink+)
@@ -641,7 +641,7 @@ time an indexed pattern is drawn.")
 
 (defmethod medium-copy-area ((from-drawable pixmap) from-x from-y width height
                              (to-drawable clx-medium) to-x to-y)
-  (with-transformed-position ((sheet-native-transformation (medium-sheet to-drawable))
+  (with-transformed-position ((sheet-device-transformation (medium-sheet to-drawable))
                               to-x to-y)
     (xlib:copy-area (pixmap-mirror from-drawable)
                     (medium-gcontext to-drawable +background-ink+)
@@ -664,7 +664,7 @@ time an indexed pattern is drawn.")
 ;;; Medium-specific Drawing Functions
 
 (defmethod medium-draw-point* ((medium clx-medium) x y)
-  (with-transformed-position ((sheet-native-transformation
+  (with-transformed-position ((sheet-device-transformation
                                (medium-sheet medium))
                               x y)
     (with-clx-graphics (medium)
@@ -688,7 +688,7 @@ time an indexed pattern is drawn.")
 
 
 (defmethod medium-draw-points* ((medium clx-medium) coord-seq)
-  (with-transformed-positions ((sheet-native-transformation
+  (with-transformed-positions ((sheet-device-transformation
                                 (medium-sheet medium))
                                coord-seq)
     (with-clx-graphics (medium)
@@ -713,7 +713,7 @@ time an indexed pattern is drawn.")
 				    0 (* 2 pi) t))))))))))
 
 (defmethod medium-draw-line* ((medium clx-medium) x1 y1 x2 y2)
-  (let ((tr (sheet-native-transformation (medium-sheet medium))))
+  (let ((tr (sheet-device-transformation (medium-sheet medium))))
     (with-transformed-position (tr x1 y1)
       (with-transformed-position (tr x2 y2)
         (with-clx-graphics (medium)
@@ -736,22 +736,12 @@ time an indexed pattern is drawn.")
                                            (min #x7FFF (max #x-8000 (round-coordinate x2)))
                                            (min #x7FFF (max #x-8000 (round-coordinate y2))))))))))))))))
 
-;; Invert the transformation and apply it here, as the :around methods on
-;; transform-coordinates-mixin will cause it to be applied twice, and we
-;; need to undo one of those. The transform-coordinates-mixin stuff needs
-;; to be eliminated.
-(defmethod medium-draw-lines* ((medium clx-medium) coord-seq)
-  (let ((tr (invert-transformation (medium-transformation medium))))
-    (with-transformed-positions (tr coord-seq)
-      (do-sequence ((x1 y1 x2 y2) coord-seq)
-        (medium-draw-line* medium x1 y1 x2 y2)))))
-
 (defmethod medium-draw-polygon* ((medium clx-medium) coord-seq closed filled)
   ;; TODO:
   ;; . cons less
   ;; . clip
   (assert (evenp (length coord-seq)))
-  (with-transformed-positions ((sheet-native-transformation
+  (with-transformed-positions ((sheet-device-transformation
                                 (medium-sheet medium))
                                coord-seq)
     (setq coord-seq (map 'vector #'round-coordinate coord-seq))
@@ -773,7 +763,7 @@ time an indexed pattern is drawn.")
                                     left top right bottom filled))
 
 (defmethod medium-draw-rectangle-using-ink* ((medium clx-medium) (ink t) left top right bottom filled)
-  (let ((tr (sheet-native-transformation (medium-sheet medium))))
+  (let ((tr (sheet-device-transformation (medium-sheet medium))))
     (with-transformed-position (tr left top)
       (with-transformed-position (tr right bottom)
         (with-clx-graphics (medium)
@@ -797,7 +787,7 @@ time an indexed pattern is drawn.")
 #+CLX-EXT-RENDER
 (defmethod medium-draw-rectangle-using-ink* ((medium clx-medium) (ink climi::uniform-compositum)
                                              x1 y1 x2 y2 filled)
-  (let ((tr (sheet-native-transformation (medium-sheet medium))))
+  (let ((tr (sheet-device-transformation (medium-sheet medium))))
     (with-transformed-position (tr x1 y1)
       (with-transformed-position (tr x2 y2)
         (let ((x1 (round-coordinate x1))
@@ -821,7 +811,7 @@ time an indexed pattern is drawn.")
 
 (defmethod medium-draw-rectangles* ((medium clx-medium) position-seq filled)
   (assert (evenp (length position-seq)))
-  (with-transformed-positions ((sheet-native-transformation
+  (with-transformed-positions ((sheet-device-transformation
 				(medium-sheet medium))
                                position-seq)
     (with-clx-graphics (medium)
@@ -841,7 +831,7 @@ time an indexed pattern is drawn.")
 				 start-angle end-angle filled)
   (unless (or (= radius-2-dx radius-1-dy 0) (= radius-1-dx radius-2-dy 0))
     (error "MEDIUM-DRAW-ELLIPSE* not yet implemented for non axis-aligned ellipses."))
-  (with-transformed-position ((sheet-native-transformation (medium-sheet medium))
+  (with-transformed-position ((sheet-device-transformation (medium-sheet medium))
                               center-x center-y)
     (let* ((arc-angle (- end-angle start-angle))
            (arc-angle (if (< arc-angle 0)
@@ -862,7 +852,7 @@ time an indexed pattern is drawn.")
 (defmethod medium-draw-circle* ((medium clx-medium)
 				center-x center-y radius start-angle end-angle
 				filled)
-  (with-transformed-position ((sheet-native-transformation (medium-sheet
+  (with-transformed-position ((sheet-device-transformation (medium-sheet
 							    medium))
                               center-x center-y)
     (let* ((arc-angle (- end-angle start-angle))
@@ -987,31 +977,31 @@ time an indexed pattern is drawn.")
           (t
            (let ((position-newline (position #\newline string :start start :end end)))
              (cond ((not (null position-newline))
-                    (multiple-value-bind (width ascent descent left right
+                    (multiple-value-bind (width text-ascent text-descent left right
                                                 font-ascent font-descent direction
                                                 first-not-done)
                         (xlib:text-extents xfont string
                                            :start start :end position-newline
                                            :translate #'translate)
                       (declare (ignorable left right
-                                          font-ascent font-descent
+                                          text-ascent text-descent
                                           direction first-not-done))
                       (multiple-value-bind (w h x y baseline)
                           (text-size medium string :text-style text-style
                                      :start (1+ position-newline) :end end)
-                        (values (max w width) (+ ascent descent h)
-                                x (+ ascent descent y) (+ ascent descent baseline)))))
+                        (values (max w width) (+ font-ascent font-descent h)
+                                x (+ font-ascent font-descent y) (+ font-ascent font-descent baseline)))))
                    (t
-                    (multiple-value-bind (width ascent descent left right
+                    (multiple-value-bind (width text-ascent text-descent left right
                                                 font-ascent font-descent direction
                                                 first-not-done)
                         (xlib:text-extents xfont string
                                    :start start :end end
                                    :translate #'translate)
                       (declare (ignorable left right
-                                          font-ascent font-descent
+                                          text-ascent text-descent
                                           direction first-not-done))
-                      (values width (+ ascent descent) width 0 ascent)) )))))) )
+                      (values width (+ font-ascent font-descent) width 0 font-ascent)) )))))) )
 
 (defmethod climi::text-bounding-rectangle*
     ((medium clx-medium) string &key text-style (start 0) end)
@@ -1062,7 +1052,7 @@ time an indexed pattern is drawn.")
                               align-x align-y
                               toward-x toward-y transform-glyphs)
   (declare (ignore toward-x toward-y transform-glyphs))
-  (with-transformed-position ((sheet-native-transformation (medium-sheet medium))
+  (with-transformed-position ((sheet-device-transformation (medium-sheet medium))
                               x y)
     (with-clx-graphics (medium)
       (when (characterp string)
@@ -1104,7 +1094,7 @@ time an indexed pattern is drawn.")
 			      align-x align-y toward-x toward-y
 			      transform-glyphs)
   (declare (ignore toward-x toward-y transform-glyphs align-x align-y))
-  (with-transformed-position ((sheet-native-transformation (medium-sheet medium))
+  (with-transformed-position ((sheet-device-transformation (medium-sheet medium))
                               x y)
     (with-clx-graphics (medium)
       (xlib:draw-glyph mirror gc (round-coordinate x) (round-coordinate y)
@@ -1122,7 +1112,7 @@ time an indexed pattern is drawn.")
   (xlib:display-force-output (clx-port-display (port medium))))
 
 (defmethod medium-clear-area ((medium clx-medium) left top right bottom)
-  (let ((tr (sheet-native-transformation (medium-sheet medium))))
+  (let ((tr (sheet-device-transformation (medium-sheet medium))))
     (with-transformed-position (tr left top)
       (with-transformed-position (tr right bottom)
 	(let ((min-x (round-coordinate (min left right)))
