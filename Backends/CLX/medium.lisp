@@ -522,7 +522,7 @@ translated, so they begin at different position than [0,0])."))
 
 (defmethod medium-copy-area ((from-drawable pixmap) from-x from-y width height
                              (to-drawable clx-medium) to-x to-y)
-  (with-transformed-position ((sheet-native-transformation (medium-sheet to-drawable))
+  (with-transformed-position ((sheet-device-transformation (medium-sheet to-drawable))
                               to-x to-y)
     (xlib:copy-area (pixmap-xmirror from-drawable)
                     (medium-gcontext to-drawable +background-ink+)
@@ -545,7 +545,7 @@ translated, so they begin at different position than [0,0])."))
 ;;; Medium-specific Drawing Functions
 
 (defmethod medium-draw-point* ((medium clx-medium) x y)
-  (with-transformed-position ((sheet-native-transformation
+  (with-transformed-position ((sheet-device-transformation
                                (medium-sheet medium))
                               x y)
     (with-clx-graphics () medium
@@ -569,7 +569,7 @@ translated, so they begin at different position than [0,0])."))
 
 
 (defmethod medium-draw-points* ((medium clx-medium) coord-seq)
-  (with-transformed-positions ((sheet-native-transformation
+  (with-transformed-positions ((sheet-device-transformation
                                 (medium-sheet medium))
                                coord-seq)
     (with-clx-graphics () medium
@@ -594,7 +594,7 @@ translated, so they begin at different position than [0,0])."))
                                     0 (* 2 pi) t))))))))))
 
 (defmethod medium-draw-line* ((medium clx-medium) x1 y1 x2 y2)
-  (let ((tr (sheet-native-transformation (medium-sheet medium))))
+  (let ((tr (sheet-device-transformation (medium-sheet medium))))
     (with-transformed-position (tr x1 y1)
       (with-transformed-position (tr x2 y2)
         (with-clx-graphics () medium
@@ -617,22 +617,12 @@ translated, so they begin at different position than [0,0])."))
                                            (min #x7FFF (max #x-8000 (round-coordinate x2)))
                                            (min #x7FFF (max #x-8000 (round-coordinate y2))))))))))))))))
 
-;; Invert the transformation and apply it here, as the :around methods on
-;; transform-coordinates-mixin will cause it to be applied twice, and we
-;; need to undo one of those. The transform-coordinates-mixin stuff needs
-;; to be eliminated.
-(defmethod medium-draw-lines* ((medium clx-medium) coord-seq)
-  (let ((tr (invert-transformation (medium-transformation medium))))
-    (with-transformed-positions (tr coord-seq)
-      (do-sequence ((x1 y1 x2 y2) coord-seq)
-        (medium-draw-line* medium x1 y1 x2 y2)))))
-
 (defmethod medium-draw-polygon* ((medium clx-medium) coord-seq closed filled)
   ;; TODO:
   ;; . cons less
   ;; . clip
   (assert (evenp (length coord-seq)))
-  (with-transformed-positions ((sheet-native-transformation
+  (with-transformed-positions ((sheet-device-transformation
                                 (medium-sheet medium))
                                coord-seq)
     (setq coord-seq (map 'vector #'round-coordinate coord-seq))
@@ -926,7 +916,7 @@ translated, so they begin at different position than [0,0])."))
   (xlib:display-force-output (clx-port-display (port medium))))
 
 (defmethod medium-clear-area ((medium clx-medium) left top right bottom)
-  (let ((tr (sheet-native-transformation (medium-sheet medium))))
+  (let ((tr (sheet-device-transformation (medium-sheet medium))))
     (with-transformed-position (tr left top)
       (with-transformed-position (tr right bottom)
         (let ((min-x (round-coordinate (min left right)))
