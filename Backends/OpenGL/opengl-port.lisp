@@ -82,16 +82,6 @@
       (remhash sheet sheet->signature-dl)
       (remhash (car signature-and-dl) signature->sheet))))
 
-(defmethod port-set-sheet-region ((port opengl-port) (sheet sheet) region)
-  (declare (ignorable port sheet)
-	   (ignore region))
-  nil)
-
-(defmethod port-set-sheet-transformation ((port opengl-port) (sheet sheet) transformation)
-  (declare (ignorable port sheet)
-	   (ignore transformation))
-  nil)
-
 (defun parse-opengl-server-path (path)
   (pop path)
   (let* ((s (get-environment-variable "DISPLAY"))
