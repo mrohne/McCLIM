@@ -941,9 +941,6 @@ rendered on MEDIUM with the style LINE-STYLE."))
 
 ;;; "exported" from a port
 
-(defgeneric mirror-transformation (port mirror))
-(defgeneric port-set-sheet-region (port sheet region))
-(defgeneric port-set-sheet-transformation (port sheet region))
 (defgeneric port-text-style-mappings (port))
 (defgeneric port-lookup-mirror (port sheet))
 (defgeneric port-register-mirror (port sheet mirror))

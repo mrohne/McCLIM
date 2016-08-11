@@ -808,6 +808,7 @@
    #:grid-pane                          ;pane
    #:handle-event                       ;generic function
    #:handle-repaint                     ;generic function
+   #:dispatch-repaint                   ;generic function
    #:hbox-pane                          ;pane
    #:highlight-applicable-presentation  ;function
    #:highlight-output-record            ;generic function
@@ -840,6 +841,7 @@
    #:invoke-with-output-recording-options ;generic function
    #:invoke-with-output-to-output-record ;generic function
    #:invoke-with-text-style             ;generic function
+   #:invoke-with-port-locked            ;generic function
    #:item-list-output-record            ;protocol class
    #:item-list-output-record-p          ;predicate
    #:key-press-event                    ;class
@@ -1520,6 +1522,7 @@
    #:window-manager-event               ;class
    #:window-refresh                     ;generic function
    #:window-repaint-event               ;class
+   #:window-unmap-event                 ;class
    #:window-viewport                    ;generic function
    #:window-viewport-position           ;generic function
    #:with-accept-help                   ;macro
@@ -1991,7 +1994,6 @@
    #:make-graft
    #:medium-draw-circle*
    #:medium-draw-glyph
-   #:mirror-transformation
    #:port-allocate-pixmap
    #:port-deallocate-pixmap
    #:port-disable-sheet
@@ -2002,10 +2004,16 @@
    #:port-mirror-height
    #:port-mirror-width
    #:port-motion-hints
-   #:port-set-mirror-region
-   #:port-set-mirror-transformation
-   #:port-set-sheet-region
-   #:port-set-sheet-transformation
+   #:sheet-mirror-region
+   #:sheet-mirror-transformation
+   #:port-mirror-region
+   #:port-mirror-transformation
+   #:port-native-region
+   #:port-native-transformation
+   #:port-device-region
+   #:port-device-transformation
+   #:port-sheet-transformation-changed
+   #:port-sheet-region-changed
    #:port-ungrab-pointer
    #:queue-callback
    #:set-sheet-pointer-cursor
@@ -2073,23 +2081,6 @@
   #+excl
   (:import-from :excl compile-system load-system)
   (:intern #:letf))
-
-;(defpackage :CLIM
-;  (:use #+nil :clim-extensions ; will use it later
-;        :clim-internals :common-lisp)
-;  )
-
-;(let ((climi-package (find-package :climi))
-;      (ext-package   (find-package :clim-extensions)))
-;  (do-external-symbols (sym ext-package)
-;    (export sym climi-package)))
-
-;(let ((clim-package  (find-package :clim))
-;      (climi-package (find-package :climi)))
-;  (do-external-symbols (sym climi-package)
-;    (export sym clim-package)))
-
-;(use-package :clim-extensions :clim)
 
 (defpackage :clim-demo
   (:use :clim-extensions :clim :clim-lisp)
