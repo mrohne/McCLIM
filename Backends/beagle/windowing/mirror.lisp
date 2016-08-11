@@ -45,8 +45,6 @@
 ;;; Sheets can't possibly have a mirror transformation at this point, since
 ;;; we're in the process of creating the mirror... if any mirror
 ;;; transformation exists, it must surely be +IDENTITY-TRANSFORMATION+.
-;;; UPDATE: at mirror realization time, (%sheet-mirror-transformation) is
-;;; ALWAYS +identity-transformation+.
 
 ;;; _SUSPECT_ we can say the same about the sheet-mirror-region; this
 ;;; is presumably set to some default. (%sheet-mirror-region) ALWAYS
@@ -227,7 +225,6 @@ for windows that are not decorated."
   ;; view. Then all our mirrors are instances of NSView.
 
   (when (null (port-lookup-mirror port sheet))
-    (update-mirror-geometry sheet)
     (let* ((desired-color   (%beagle-sheet-background-colour sheet))
 	   (frame           (pane-frame sheet))
 	   (q               (compose-space sheet))
@@ -259,7 +256,6 @@ for windows that are not decorated."
 ;;; way of doing it, but hey.
 (defmethod realize-mirror ((port beagle-port) (sheet unmanaged-top-level-sheet-pane))
   (when (null (port-lookup-mirror port sheet)) ; Don't create a new object if one already exists
-    (update-mirror-geometry sheet)
     (let* ((desired-color (%beagle-sheet-background-colour sheet))
 	   (q             (compose-space sheet))
 	   (x             0)
@@ -287,7 +283,6 @@ for windows that are not decorated."
   ;; views (as was the case in the past) but this seems unlikely. Is there
   ;; then any value to retaining the :view keyword?
   (when (null (port-lookup-mirror port sheet))
-    (update-mirror-geometry sheet)
     (let* ((desired-color (%beagle-sheet-background-colour sheet))
 	   (x             0)
 	   (y             0)
@@ -377,39 +372,6 @@ for windows that are not decorated."
 ;; a 0,0 origin plane (like a sheet) into coordinates in a NON-0,0 origin plane (like the mirror).
 ;; However, all our mirrors have their origin at 0,0 anyway so I don't think this needs to return
 ;; anything else. Could be wrong...
-
-;; Not in the spec.; where's it from?
-(defmethod mirror-transformation ((port beagle-port) mirror)
-  (declare (ignore port))
-  (slet ((frame (send mirror 'frame)))  ; location of NSView in its *parent*
-    (make-translation-transformation (pref frame :<NSR>ect.origin.x)
-				     (+ (pref frame :<NSR>ect.origin.y)   ; consider flipped coords...
-					(pref frame :<NSR>ect.size.height)))))
-
-
-;; Was invoked from 'sheets.lisp', no longer referenced. ::FIXME:: (remove)
-(defmethod port-set-sheet-region ((port beagle-port) (graft graft) region)
-  (declare (ignore port graft region))
-  (error "port-set-sheet-region (graft) - implement me"))
-
-
-;; Included in 'decls.lisp', but not used in the code. ::FIXME:: (remove)
-(defmethod port-set-sheet-transformation ((port beagle-port) (graft graft) transformation)
-  (declare (ignore port graft transformation))
-  (error "port-set-sheet-transformation (graft) - implement me"))
-
-
-;; Is *this* the missing piece of the puzzle? - apparently not :-(
-;; WAS invoked from 'sheets.lisp' but no longer. ::FIXME:: (remove)
-(defmethod port-set-sheet-region ((port beagle-port) (sheet mirrored-sheet-mixin) region)
-  (declare (ignore port sheet region))
-  (error "port-set-sheet-region (mirror) - implement me"))
-
-
-;;; I think port-set-mirror-region + port-set-mirror-transformation are indeed the key
-;;; to scrolling; we can probably confirm this by getting the CLX back end running
-;;; properly. However, in Cocoa, just changing these makes no difference. We also
-;;; need to explicitly redraw the appropriate windows (whichever they are).
 
 ;;; Also, these methods get invoked (all the time) for mirrors whose regions +
 ;;; transformations ARE NOT CHANGING which seems rather wasteful. Need to catch

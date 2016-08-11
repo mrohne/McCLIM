@@ -170,7 +170,6 @@
   ;; sheet-region, sheet-transformation
   ;; sheet-device-region, sheet-device-transformation
   ;; sheet-native-region, sheet-native-transformation
-  ;; sheet-mirror-region, sheet-mirror-transformation (neither in spec :-( )
   (format output "Object ~a has the following geometry:~%" sheet)
   
   ;; Look up FORMAT in Hyperspec and do this formatting more nicely... or use
@@ -196,11 +195,6 @@
   (format output "        SHEET-NATIVE-REGION: ~s~%SHEET-NATIVE-TRANSFORMATION: ~s~%"
 	  (sheet-native-region sheet)
 	  (sheet-native-transformation sheet))
-  ;; sheet-mirror-* is non standard and stands no chance on any non-McCLIM CLIM.
-  #+:mcclim
-  (format output "        SHEET-MIRROR-REGION: ~s~%SHEET-MIRROR-TRANSFORMATION: ~s~%"
-	  (climi::%sheet-mirror-region sheet)
-	  (climi::%sheet-mirror-transformation sheet))
   (format output "It has the parent: ")
   (with-output-as-presentation (output
 				(sheet-parent sheet)
