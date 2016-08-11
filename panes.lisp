@@ -31,6 +31,8 @@
 
 (in-package :clim-internals)
 
+(declaim (optimize (safety 3) (debug 3) (speed 0) (space 0)))
+
 ;;;;
 ;;;; Ambiguities and Obmissions
 ;;;;
@@ -496,8 +498,7 @@ order to produce a double-click")
                          ((:bottom) (+ y (- height child-height)))
                          ((:expand)  y) )))
     ;; Actually layout the child
-    (move-sheet child child-x child-y)    
-    (resize-sheet child child-width child-height)
+    (move-and-resize-sheet child child-x child-y child-width child-height)
     (allocate-space child child-width child-height)))
 
 
@@ -705,8 +706,7 @@ order to produce a double-click")
                (eql (pane-current-height pane) height))
     (setf (pane-current-width pane) width
           (pane-current-height pane) height)
-    (unless (top-level-sheet-pane-p pane)
-      (resize-sheet pane width height))
+    (resize-sheet pane width height)
     (call-next-method)))
 
 (defmethod compose-space :around ((pane layout-protocol-mixin) &key width height)
@@ -778,7 +778,7 @@ order to produce a double-click")
   `(invoke-with-changing-space-requirements (lambda () ,@body) :resize-frame ,resize-frame :layout ,layout))
 
 (defun invoke-with-changing-space-requirements (continuation &key resize-frame layout)
-  (cond (*changed-space-requirements*
+  (cond (*changing-space-requirements*
          ;; We are already within changing-space-requirements, so just
          ;; call the body. This might however lead to surprising
          ;; behavior in case the outer changing-space-requirements has
@@ -926,17 +926,21 @@ order to produce a double-click")
 
 (defmethod compose-space ((pane top-level-sheet-pane) &key width height)
   (declare (ignore width height))
-  (compose-space (first (sheet-children pane))))
+  (loop 
+     for child in (sheet-children pane) 
+     for this = (compose-space child :width width :height height)
+     for next = this then (space-requirement-combine #'max next this)
+     finally (return next)))
 
 (defmethod allocate-space ((pane top-level-sheet-pane) width height)
   (unless (pane-space-requirement pane)
     (setf (pane-space-requirement pane)
-      (compose-space pane)))
-  (when (first (sheet-children pane))
-    (allocate-space
-        (first (sheet-children pane))
-	(clamp width  (sr-min-width pane)  (sr-max-width pane))
-	(clamp height (sr-min-height pane) (sr-max-height pane)))))
+      (compose-space pane :width width :height height)))
+  (loop
+     with width = (clamp width  (sr-min-width pane)  (sr-max-width pane))
+     with height = (clamp height (sr-min-height pane) (sr-max-height pane))
+     for child in (sheet-children pane) do
+       (allocate-space child width height)))
 
 (defmethod handle-event ((pane top-level-sheet-pane)
 			 (event window-configuration-event))
@@ -969,7 +973,7 @@ order to produce a double-click")
   ()
   (:documentation "Top-level sheet without window manager intervention"))
 
-(defmethod sheet-native-transformation ((sheet top-level-sheet-pane))
+(defmethod port-native-transformation (port (sheet top-level-sheet-pane))
   +identity-transformation+)
 
 (defmethod change-space-requirements ((pane unmanaged-top-level-sheet-pane)
@@ -1735,7 +1739,7 @@ order to produce a double-click")
 (defmacro raising ((&rest options) &body contents)
   `(make-pane 'raised-pane ,@options :contents (list ,@contents)))
 
-(defmethod handle-repaint ((pane raised-pane) region)
+(defmethod repaint-sheet ((pane raised-pane) region)
   (declare (ignore region))
   (with-slots (border-width) pane
     (multiple-value-call #'draw-bordered-rectangle* pane (bounding-rectangle* (sheet-region pane))
@@ -1752,7 +1756,7 @@ order to produce a double-click")
 (defmacro lowering ((&rest options) &body contents)
   `(make-pane 'lowered-pane ,@options :contents (list ,@contents)))
 
-(defmethod handle-repaint ((pane lowered-pane) region)
+(defmethod repaint-sheet ((pane lowered-pane) region)
   (declare (ignore region))
   (with-slots (border-width) pane
     (multiple-value-call #'draw-bordered-rectangle* pane (bounding-rectangle* (sheet-region pane))
@@ -2332,7 +2336,7 @@ order to produce a double-click")
                         (- (- x2 right) (+ x1 left))
                         (- (- y2 bottom) (+ y1 top)))))))
 
-(defmethod handle-repaint ((pane label-pane) region)
+(defmethod repaint-sheet ((pane label-pane) region)
   (declare (ignore region))
   (let ((m0 2)
         (a (text-style-ascent (pane-text-style pane) pane))
@@ -2552,8 +2556,7 @@ order to produce a double-click")
   (let ((cursor (stream-text-cursor pane)))
     (when cursor
       (setf (cursor-position cursor) (values 0 0))))
-  (scroll-extent pane 0 0)  
-  (change-space-requirements pane :width 0 :height 0))
+  (scroll-extent pane 0 0))
 
 
 (defmethod window-refresh ((pane clim-stream-pane))
