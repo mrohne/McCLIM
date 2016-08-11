@@ -197,14 +197,14 @@
 
 (defmethod armed-callback :after ((gadget goatee-editor-substrate) client id)
   (declare (ignore client id))
-  (handle-repaint gadget +everywhere+)	;FIXME: trigger initialization
+  (dispatch-repaint gadget +everywhere+)	;FIXME: trigger initialization
   (let ((cursor (cursor (area gadget))))
     (letf (((cursor-state cursor) nil))
       (setf (cursor-appearance cursor) :solid))))
 
 (defmethod disarmed-callback :after ((gadget goatee-editor-substrate) client id)
   (declare (ignore client id))
-  (handle-repaint gadget +everywhere+)	;FIXME: trigger initialization
+  (dispatch-repaint gadget +everywhere+)	;FIXME: trigger initialization
   (let ((cursor (cursor (area gadget))))
     (letf (((cursor-state cursor) nil))
       (setf (cursor-appearance cursor) :hollow))))
