@@ -82,8 +82,8 @@
   (/ (graft-width graft :units :device)
      (graft-width graft :units :inches)))
 
-(defmethod sheet-native-transformation ((sheet graft))
+(defmethod port-native-transformation (port (sheet graft))
   +identity-transformation+)
 
-(defmethod sheet-native-region ((sheet graft))
+(defmethod port-native-region (port (sheet graft))
   +everywhere+)
