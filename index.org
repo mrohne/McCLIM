@@ -1,0 +1,16 @@
+* [[skim:///Users/mrohne/Develop/McCLIM/Spec/src/clim.pdf::1][Specifications]]
+** Display server interface
+   - [[skim:///Users/mrohne/Develop/McCLIM/Spec/src/clim.pdf::89][Ports]]
+   - [[skim:///Users/mrohne/Develop/McCLIM/Spec/src/clim.pdf::91][Grafts]]
+   - [[skim:///Users/mrohne/Develop/McCLIM/Spec/src/clim.pdf::93][Mirrors and Mirrored Sheets]]
+
+* [[file:Backends][Backends]]
+** [[file:Backends/SDL][Backends/SDL]]
+*** [[file:Backends/SDL/event.lisp][Backends/SDL/event.lisp]]
+    SDL threading and events
+    - certain parts of SDL can only be called from the thread that called SDL_Init
+    - on OS X SDL_init must be called from the system main thread
+    - do we need to replace the SDL-provided main loop?
+    CLIM threading and events
+    - single-threaded CLIM presumably calls #'PROCESS-NEXT-EVENT
+    - multi-threaded CLIM expects a CLIM-thread that loops on #'PROCESS-NEXT-EVENT
