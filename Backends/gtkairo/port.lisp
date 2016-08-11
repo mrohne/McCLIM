@@ -272,7 +272,7 @@
       (connect-signals widget)
       (gtk_widget_set_size_request widget width height)
       (multiple-value-bind (x y)
-	  (transform-position (climi::%sheet-mirror-transformation sheet) 0 0)
+	  (transform-position (sheet-native-transformation sheet) 0 0)
 	(setf x (round-coordinate x))
 	(setf y (round-coordinate y))
 	(container-put (sheet-parent sheet) (mirror-widget parent) widget x y))
@@ -322,7 +322,7 @@
       (gtk_widget_set_size_request fixed width height)
       (gtk_widget_set_size_request widget width height)
       (multiple-value-bind (x y)
-	  (transform-position (climi::%sheet-mirror-transformation sheet) 0 0)
+	  (transform-position (sheet-native-transformation sheet) 0 0)
 	(setf x (round-coordinate x))
 	(setf y (round-coordinate y))
 	(container-put (sheet-parent sheet) (mirror-widget parent) fixed x y))
@@ -584,21 +584,6 @@
   (with-gtk ()
     (let ((mirror (climi::port-lookup-mirror port sheet)))
       (gtk_widget_hide (mirror-window mirror)))))
-
-
-;;;; JUNK
-
-(defmethod mirror-transformation ((port gtkairo-port) mirror)
-  ())
-
-;; die sind verkehrt, die gibt's gar nicht
-;;;(defmethod port-set-sheet-transformation
-;;;    ((port gtkairo-port) (graft graft) transformation)
-;;;  ())
-;;;
-;;;(defmethod port-set-sheet-transformation
-;;;    ((port gtkairo-port) (sheet mirrored-sheet-mixin) transformation)
-;;;  ())
 
 
 ;;;; Vermischtes
