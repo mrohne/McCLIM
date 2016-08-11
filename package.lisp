@@ -804,6 +804,7 @@
    #:grid-pane                          ;pane
    #:handle-event                       ;generic function
    #:handle-repaint                     ;generic function
+   #:dispatch-repaint                   ;generic function
    #:hbox-pane                          ;pane
    #:highlight-applicable-presentation  ;function
    #:highlight-output-record            ;generic function
@@ -836,6 +837,7 @@
    #:invoke-with-output-recording-options ;generic function
    #:invoke-with-output-to-output-record ;generic function
    #:invoke-with-text-style             ;generic function
+   #:invoke-with-port-locked            ;generic function
    #:item-list-output-record            ;protocol class
    #:item-list-output-record-p          ;predicate
    #:key-press-event                    ;class
@@ -1516,6 +1518,7 @@
    #:window-manager-event               ;class
    #:window-refresh                     ;generic function
    #:window-repaint-event               ;class
+   #:window-unmap-event                 ;class
    #:window-viewport                    ;generic function
    #:window-viewport-position           ;generic function
    #:with-accept-help                   ;macro
@@ -1981,7 +1984,6 @@
    #:make-graft
    #:medium-draw-circle*
    #:medium-draw-glyph
-   #:mirror-transformation
    #:port-allocate-pixmap
    #:port-deallocate-pixmap
    #:port-disable-sheet
