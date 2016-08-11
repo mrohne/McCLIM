@@ -515,23 +515,8 @@ recording stream. If it is T, *STANDARD-OUTPUT* is used.")
         (:unhighlight
 	 ;; FIXME: repaint the hit detection rectangle. It could be
 	 ;; bigger than the bounding rectangle.
-	 (repaint-sheet stream record)
-         ;; Using queue-repaint should be faster in apps (such as
-         ;; clouseau) that highlight/unhighlight many bounding
-         ;; rectangles at once. The event code should merge these into
-         ;; a single larger repaint. Unfortunately, since an enqueued
-         ;; repaint does not occur immediately, and highlight
-         ;; rectangles are not recorded, newer highlighting gets wiped
-         ;; out shortly after being drawn. So, we aren't ready for
-         ;; this yet.  ..Actually, it isn't necessarily
-         ;; faster. Depends on the app.
-         #+NIL
-	 (queue-repaint stream
-			(make-instance 'window-repaint-event
-			  :sheet stream
-			  :region (transform-region
-				   (sheet-native-transformation stream)
-				   record))))))))
+	 (dispatch-repaint stream record)
+	 )))))
 
 ;;; XXX Should this only be defined on recording streams?
 (defmethod highlight-output-record ((record output-record) stream state)
@@ -2353,7 +2338,7 @@ according to the flags RECORD and DRAW."
 ;;;        to explicit repaint requests from the user, not exposes from X
 ;;; FIXME: Use DRAW-DESIGN*, that is fix DRAW-DESIGN*.
 
-(defmethod handle-repaint ((stream output-recording-stream) region)
+(defmethod repaint-sheet ((stream output-recording-stream) region)
   (when (output-recording-stream-p stream)
     (unless (region-equal region +nowhere+)                    ; ignore repaint requests for +nowhere+
       (let ((region (if (region-equal region +everywhere+)

@@ -680,12 +680,7 @@
                                                     (slot-value record 'record)
                                                     new-drawing-options)
                    ;; Great, this again..
-                   (queue-repaint stream
-                      (make-instance 'window-repaint-event
-                                    :sheet stream
-                                    :region (transform-region
-                                             (sheet-native-transformation stream)
-                                             record)))))
+                   (dispatch-repaint stream record)))
             (ecase state
               (:highlight
                (with-keywords-removed (drawing-options (:background :outline-ink))
