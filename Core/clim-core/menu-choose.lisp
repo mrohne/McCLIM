@@ -37,6 +37,8 @@
 
 (in-package :clim-internals)
 
+(declaim (optimize (safety 3) (debug 3) (speed 0) (space 0)))
+
 ;; Spec function.
 (defgeneric menu-choose
     (items
@@ -195,25 +197,24 @@
                                *application-frame*))
          (fm (frame-manager associated-frame)))
     (with-look-and-feel-realization (fm associated-frame) ; hmm... checkme
-      (let* ((menu-stream (make-pane-1 fm associated-frame 'menu-pane))
-             (container (scrolling (:scroll-bar scroll-bars)
-                          menu-stream))
+      (let* ((menu (make-pane-1 fm associated-frame 'menu-pane))
+             (view (scrolling (:scroll-bar scroll-bars) menu))
 	     (frame (make-menu-frame (raising ()
 				       (if label
 					   (labelling (:label label
 						       :name 'label
 						       :label-alignment :top)
-					     container)
-					   container))
+					     view)
+					   view))
 				     :left nil
 				     :top nil)))
         (adopt-frame fm frame)
 	(setf (slot-value menu-stream 'menu-frame) frame)
         (unwind-protect
              (progn
-               (setf (stream-end-of-line-action menu-stream) :allow
-                     (stream-end-of-page-action menu-stream) :allow)
-               (funcall continuation menu-stream))
+               (setf (stream-end-of-line-action menu) :allow
+                     (stream-end-of-page-action menu) :allow)
+               (funcall continuation menu))
           (when deexpose ; Checkme as well.
             (disown-frame fm frame)))))))
 
@@ -304,7 +305,7 @@ maximum size according to `frame')."
     (change-space-requirements menu
 			       :width menu-width
 			       :height menu-height
-                               :resize-frame t)
+                               :resize-frame nil)
 
     ;; If we have scroll-bars, we need to do some calibration of the
     ;; size of the viewport.
@@ -328,7 +329,7 @@ maximum size according to `frame')."
                                   :height (+ menu-height
                                              (- (pane-current-height (pane-scroller menu))
                                                 viewport-height))
-                                  :resize-frame t)))
+                                  :resize-frame nil)))
 
     ;; Modify the size and location of the frame as well.
     (let* ((top-level-pane (labels ((searching (pane)
@@ -355,8 +356,8 @@ maximum size according to `frame')."
               ;; Adjust for maximum position if the programmer has not
               ;; explicitly provided coordinates.
               (if (null x-position)
-               (when (> left max-left)
-                 (setf left max-left)))
+		  (when (> left max-left)
+		    (setf left max-left)))
               (if (null y-position)
                (when (> top max-top)
                  (setf top max-top)))
@@ -371,7 +372,7 @@ maximum size according to `frame')."
 (defmethod menu-choose-from-drawer
     (menu presentation-type drawer
      &key x-position y-position cache unique-id id-test cache-value cache-test
-     default-presentation pointer-documentation)
+       default-presentation pointer-documentation)
   (declare (ignore cache unique-id
                    id-test cache-value cache-test default-presentation))
   (with-room-for-graphics (menu :first-quadrant nil)
@@ -384,11 +385,10 @@ maximum size according to `frame')."
   ;; The menu is enabled (make visible) after the size is adjusted.
   (enable-menu menu)
   (let ((*pointer-documentation-output* pointer-documentation))
-    (let ((*pointer-documentation-output* pointer-documentation))
-      (handler-case
-          (with-input-context (`(or ,presentation-type blank-area) :override t)
-              (object type event) 
-              (prog1 nil (loop (read-gesture :stream menu)))
-            (blank-area nil)
-            (t (values object event)))
-        (abort-gesture () nil)))))
+    (handler-case
+	(with-input-context (`(or ,presentation-type blank-area) :override t)
+	    (object type event) 
+	    (prog1 nil (loop (read-gesture :stream menu)))
+	  (blank-area nil)
+	  (t (values object event)))
+      (abort-gesture () nil))))
