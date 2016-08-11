@@ -167,12 +167,6 @@
 (defmethod sheet-direct-mirror ((sheet postscript-stream))
   (postscript-stream-file-stream sheet))
 
-(defmethod sheet-mirrored-ancestor ((sheet postscript-stream))
-  sheet)
-
-(defmethod sheet-mirror ((sheet postscript-stream))
-  (sheet-direct-mirror sheet))
-
 (defmethod realize-mirror ((port postscript-port) (sheet postscript-stream))
   (sheet-direct-mirror sheet))
 
