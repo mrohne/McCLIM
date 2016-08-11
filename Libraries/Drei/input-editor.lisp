@@ -28,6 +28,9 @@
 
 (in-package :drei)
 
+(eval-when (:execute :compile-toplevel :load-toplevel)
+  (declaim (optimize (debug 3) (safety 3) (space 0) (speed 0))))
+
 ;; Note that we use `stream-scan-pointer' to access the scan pointer
 ;; of the stream in the protocol methods, despite the fact that the
 ;; `drei-input-editing-mixin' class does not have a scan pointer. We
