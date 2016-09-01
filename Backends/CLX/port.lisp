@@ -4,7 +4,7 @@
 ;;;  (c) copyright 2000,2001 by 
 ;;;           Iban Hatchondo (hatchond@emi.u-bordeaux.fr)
 ;;;           Julien Boninfante (boninfan@emi.u-bordeaux.fr)
-;;;  (c) copyright 2000, 2001, 2014 by
+;;;  (c) copyright 2000, 2001, 2014, 2016 by
 ;;;           Robert Strandh (robert.strandh@gmail.com)
 
 ;;; This library is free software; you can redistribute it and/or
@@ -73,9 +73,9 @@
  to generalise this for the future.
 |#
 
-; this is to inform the text renderer which fontset it should be using.
-; it is a complement to the graphics-context stuff, effectively.
-; the #'translate uses/needs this to switch fonts
+;;; This is to inform the text renderer which fontset it should be
+;;; using.  It is a complement to the graphics-context stuff,
+;;; effectively.  The #'translate uses/needs this to switch fonts.
 
 (defclass fontset () (
   ; of the form ((start . stop) font translator)
@@ -157,7 +157,7 @@
     (assoc point ranges :test (lambda (point range)
                                 (<= (car range) point (cdr range))))))
 
-(defclass clx-port (clim-xcommon:keysym-port-mixin basic-port)
+(defclass clx-port (clim-xcommon:keysym-port-mixin standard-event-port-mixin standard-port)
   ((display :initform nil
 	    :accessor clx-port-display)
    (screen :initform nil
@@ -169,7 +169,6 @@
                  :accessor clx-port-cursor-table)
    (design-cache :initform (make-hash-table :test #'eq))
    (pointer :reader port-pointer)
-   (pointer-grab-sheet :accessor pointer-grab-sheet :initform nil)
    (selection-owner :initform nil :accessor selection-owner)
    (selection-timestamp :initform nil :accessor selection-timestamp)
    (font-families :accessor font-families)))
@@ -409,11 +408,15 @@
   (port-lookup-mirror port sheet))
 
 (defmethod realize-mirror ((port clx-port) (sheet mirrored-sheet-mixin))
+  ;;mirrored-sheet-mixin is always in the top of the Class Precedence List
+  (%realize-mirror port sheet))
+
+(defmethod %realize-mirror ((port clx-port) (sheet basic-sheet))
   (realize-mirror-aux port sheet
                       :border-width 0
                       :map (sheet-enabled-p sheet)))
 
-(defmethod realize-mirror ((port clx-port) (sheet border-pane))
+(defmethod %realize-mirror ((port clx-port) (sheet border-pane))
   ;;(rotatef (medium-background (sheet-medium sheet)) (medium-foreground (sheet-medium sheet)))
   (realize-mirror-aux port sheet
 		      :border-width 0 ; (border-pane-width sheet)
@@ -438,14 +441,14 @@
                             :WM_CLIENT_LEADER (list (xlib:window-id window))
                             :WINDOW 32)))
 
-(defmethod realize-mirror ((port clx-port) (sheet unmanaged-top-level-sheet-pane))
+(defmethod %realize-mirror ((port clx-port) (sheet unmanaged-top-level-sheet-pane))
   (realize-mirror-aux port sheet
 		      :override-redirect :on
                       :save-under :on
 		      :map nil
 		      :event-mask '(:structure-notify)))
 
-(defmethod realize-mirror ((port clx-port) (sheet menu-button-pane))
+(defmethod %realize-mirror ((port clx-port) (sheet menu-button-pane))
   (realize-mirror-aux port sheet
 		      :event-mask '(:exposure
 				    :key-press :key-release
@@ -457,7 +460,7 @@
 				    :owner-grab-button)
                       :map (sheet-enabled-p sheet)))
 
-(defmethod realize-mirror ((port clx-port) (sheet clim-stream-pane))
+(defmethod %realize-mirror ((port clx-port) (sheet clim-stream-pane))
   (realize-mirror-aux port sheet
 		      :event-mask '(:exposure
 				    :key-press :key-release
@@ -517,7 +520,7 @@
 			#.(xlib:make-event-mask :pointer-motion-hint)))))
   val)
 
-; think about rewriting this macro to be nicer
+;;; Think about rewriting this macro to be nicer.
 (defmacro peek-event ((display &rest keys) &body body)
   (let ((escape (gensym)))
     `(block ,escape
@@ -540,68 +543,67 @@
                (< code (length button-mapping)))
       (aref button-mapping code))))
 
-;; From "Inter-Client Communication Conventions Manual", Version 2.0.xf86.1,
-;; section 4.1.5:
-;; 
-;; |   Advice to Implementors
-;; |
-;; |   Clients cannot distinguish between the case where a top-level
-;; |   window is resized and moved from the case where the window is
-;; |   resized but not moved, since a real ConfigureNotify event will be
-;; |   received in both cases. Clients that are concerned with keeping
-;; |   track of the absolute position of a top-level window should keep
-;; |   a piece of state indicating whether they are certain of its
-;; |   position. Upon receipt of a real ConfigureNotify event on the
-;; |   top-level window, the client should note that the position is
-;; |   unknown. Upon receipt of a synthetic ConfigureNotify event, the
-;; |   client should note the position as known, using the position in
-;; |   this event. If the client receives a KeyPress, KeyRelease,
-;; |   ButtonPress, ButtonRelease, MotionNotify, EnterNotify, or
-;; |   LeaveNotify event on the window (or on any descendant), the
-;; |   client can deduce the top-level window's position from the
-;; |   difference between the (event-x, event-y) and (root-x, root-y)
-;; |   coordinates in these events. Only when the position is unknown
-;; |   does the client need to use the TranslateCoordinates request to
-;; |   find the position of a top-level window.
-;; |
+;;; From "Inter-Client Communication Conventions Manual", Version
+;;; 2.0.xf86.1, section 4.1.5:
+;;; 
+;;; |   Advice to Implementors
+;;; |
+;;; |   Clients cannot distinguish between the case where a top-level
+;;; |   window is resized and moved from the case where the window is
+;;; |   resized but not moved, since a real ConfigureNotify event will be
+;;; |   received in both cases. Clients that are concerned with keeping
+;;; |   track of the absolute position of a top-level window should keep
+;;; |   a piece of state indicating whether they are certain of its
+;;; |   position. Upon receipt of a real ConfigureNotify event on the
+;;; |   top-level window, the client should note that the position is
+;;; |   unknown. Upon receipt of a synthetic ConfigureNotify event, the
+;;; |   client should note the position as known, using the position in
+;;; |   this event. If the client receives a KeyPress, KeyRelease,
+;;; |   ButtonPress, ButtonRelease, MotionNotify, EnterNotify, or
+;;; |   LeaveNotify event on the window (or on any descendant), the
+;;; |   client can deduce the top-level window's position from the
+;;; |   difference between the (event-x, event-y) and (root-x, root-y)
+;;; |   coordinates in these events. Only when the position is unknown
+;;; |   does the client need to use the TranslateCoordinates request to
+;;; |   find the position of a top-level window.
 
-;; The moral is that we need to distinguish between synthetic and
-;; genuine configure-notify events. We expect that synthetic configure
-;; notify events come from the window manager and state the correct
-;; size and position, while genuine configure events only state the
-;; correct size.
+;;; The moral is that we need to distinguish between synthetic and
+;;; genuine configure-notify events. We expect that synthetic
+;;; configure notify events come from the window manager and state the
+;;; correct size and position, while genuine configure events only
+;;; state the correct size.
 
-;; NOTE: Although it might be tempting to compress (consolidate)
-;; events here, this is the wrong place. In our current architecture
-;; the process calling this function (the port's event handler
-;; process) just reads the events from the X server, and does it
-;; with almost no lack behind the reality. While the application
-;; frame's event top level loop does the actual processing of events
-;; and thus may produce lack. So the events have to be compressed in
-;; the frame's event queue.
-;;
-;; So event compression is implemented in EVENT-QUEUE-APPEND.
-;;
-;; This changes for possible _real_ immediate repainting sheets,
-;; here a possible solution for the port's event handler loop can be
-;; to read all available events off into a temponary queue (and
-;; event compression for immediate events is done there) and then
-;; dispatch all events from there as usual.
-;;
-;;--GB
+;;; NOTE: Although it might be tempting to compress (consolidate)
+;;; events here, this is the wrong place. In our current architecture
+;;; the process calling this function (the port's event handler
+;;; process) just reads the events from the X server, and does it with
+;;; almost no lack behind the reality. While the application frame's
+;;; event top level loop does the actual processing of events and thus
+;;; may produce lack. So the events have to be compressed in the
+;;; frame's event queue.
+;;;
+;;; So event compression is implemented in EVENT-QUEUE-APPEND.
+;;;
+;;; This changes for possible _real_ immediate repainting sheets, here
+;;; a possible solution for the port's event handler loop can be to
+;;; read all available events off into a temponary queue (and event
+;;; compression for immediate events is done there) and then dispatch
+;;; all events from there as usual.
+;;;
+;;;--GB
   
-;; XXX :button code -> :button (decode-x-button-code code)
-;;
-;; Only button and keypress events get a :code keyword argument! For mouse
-;; button events, one should use decode-x-button-code; otherwise one needs to
-;; look at the state argument to get the current button state. The CLIM spec
-;; says that pointer motion events are a subclass of pointer-event, which is
-;; reasonable, but unfortunately they use the same button slot, whose value
-;; should only be a single button. Yet pointer-button-state can return the
-;; logical or of the button values... aaargh. For now I'll canonicalize the
-;; value going into the button slot and think about adding a
-;; pointer-event-buttons slot to pointer events. -- moore
-;; 
+;;; XXX :button code -> :button (decode-x-button-code code)
+;;;
+;;; Only button and keypress events get a :code keyword argument! For
+;;; mouse button events, one should use decode-x-button-code;
+;;; otherwise one needs to look at the state argument to get the
+;;; current button state. The CLIM spec says that pointer motion
+;;; events are a subclass of pointer-event, which is reasonable, but
+;;; unfortunately they use the same button slot, whose value should
+;;; only be a single button. Yet pointer-button-state can return the
+;;; logical or of the button values... aaargh. For now I'll
+;;; canonicalize the value going into the button slot and think about
+;;; adding a pointer-event-buttons slot to pointer events. -- moore
 
 (defvar *clx-port*)
 
@@ -618,13 +620,13 @@
     (when sheet
       (case event-key
 	((:key-press :key-release)
-         (multiple-value-bind (keyname modifier-state keysym-keyword)
+         (multiple-value-bind (keyname modifier-state keysym-name)
 	     (x-event-to-key-name-and-modifiers *clx-port* 
 						event-key code state)
            (make-instance (if (eq event-key :key-press)
 			      'key-press-event
 			      'key-release-event)
-             :key-name keysym-keyword
+             :key-name keysym-name
 	     :key-character (and (characterp keyname) keyname)
 	     :x x :y y
 	     :graft-x root-x
@@ -949,10 +951,11 @@
         (cons font-name (open-font (clx-port-display port) font-name)))
   font-name)
 
-(defun text-style-to-X-font (port text-style)
-  (let ((text-style (parse-text-style text-style)))
-    (text-style-mapping port text-style)
-    (cdr (gethash text-style (port-text-style-mappings port)))))
+(defgeneric text-style-to-X-font (port text-style)
+  (:method ((port t) (text-style t))
+    (let ((text-style (parse-text-style text-style)))
+      (text-style-mapping port text-style)
+      (cdr (gethash text-style (port-text-style-mappings port))))))
 
 ;;; The generic function PORT-CHARACTER-WIDTH might be intended to be
 ;;; common for all ports, but in fact, that symbol is in the CLIM-CLX
@@ -999,7 +1002,7 @@
 
 (defmethod realize-mirror ((port clx-port) (pixmap pixmap))
   (when (null (port-lookup-mirror port pixmap))
-    (let* ((window (sheet-direct-mirror (pixmap-sheet pixmap)))
+    (let* ((window (sheet-mirror (pixmap-sheet pixmap)))
 	   (pix (xlib:create-pixmap 
 		    :width (round (pixmap-width pixmap))
 		    :height (round (pixmap-height pixmap))
@@ -1048,7 +1051,7 @@
 	 (sheet (port-pointer-sheet port)))
     (when sheet
       (multiple-value-bind (x y same-screen-p)
-	  (xlib:query-pointer (sheet-direct-mirror sheet))
+	  (xlib:query-pointer (sheet-mirror sheet))
 	(when same-screen-p
 	  (untransform-position (sheet-native-transformation sheet) x y))))))
 
@@ -1148,20 +1151,55 @@
     (xlib:ungrab-pointer (clx-port-display port))
     (setf (pointer-grab-sheet port) nil)))
 
-(defmethod distribute-event :around ((port clx-port) event)
-  (let ((grab-sheet (pointer-grab-sheet port)))
-    (if grab-sheet
-	(queue-event grab-sheet event)
-	(call-next-method))))
-
-(defmethod set-sheet-pointer-cursor ((port clx-port) sheet cursor)
-  (let ((cursor (gethash cursor (clx-port-cursor-table port))))
-    (when cursor
-      (setf (xlib:window-cursor (sheet-mirror sheet)) cursor))))
+(defmethod set-sheet-pointer-cursor ((port clx-port) (sheet mirrored-sheet-mixin) cursor)
+  (let ((cursor (gethash (or cursor :default) (clx-port-cursor-table port)))
+	(mirror (sheet-direct-mirror sheet)))
+    (when (and cursor
+	       (typep mirror 'xlib:window))
+      (setf (xlib:window-cursor (sheet-direct-mirror sheet)) cursor))))
         
 
 ;;; Modifier cache support
 
+;;; Recall that XLIB:MODIFIER-MAPPING returns 8 values.  Each value is
+;;; a list of keycodes (in some arbitrary order) that are currently
+;;; used to mean a particular modifier.  Each value as the following
+;;; meaning:
+;;;
+;;;   value number  meaning
+;;;        0        shift keycodes
+;;;        1        lock keycodes
+;;;        2        control keycodes
+;;;        3        mod1 keycodes
+;;;        4        mod2 keycodes
+;;;        5        mod3 keycodes
+;;;        6        mod4 keycodes
+;;;        7        mod5 keycodes
+;;;
+;;; The problem here is that a keycode can be a member of more than
+;;; one list.  For example, if you turn your caps lock key into an
+;;; additional control key, then the keycode for the caps lock key may
+;;; very well be a member both of the list in value 1 and the list in
+;;; value 2.
+;;;
+;;; Let us take the case of caps lock.  The X11 programming manual
+;;; tells us that lock modifier is interpreted as caps lock when the
+;;; keysym named :CAPS-LOCK (as used by CLX) is attached to some
+;;; keycode and that keycode is also attached (as determined by
+;;; XLIB:MODIFIER-MAPPING) to the lock modifier, i.e., that keycode is
+;;; a member of the list in value 1.  The converse seems to be untrue,
+;;; though.  Just because someone pressed a key that satisfies those
+;;; criteria does not mean that the X11 server will switch on the lock
+;;; modifier next time a key is pressed.  It is unclear what the
+;;; criteria the X11 server uses.  But for our purpose it is important
+;;; to start by checking the lock modifier first.
+
+;;; This method creates a modifier mapping that is similar in spirit
+;;; to the one returned by XLIB:MODIFIER-MAPPING.  It differs from the
+;;; XLIB function in two ways.  First it returns a vector of length 8
+;;; rather than 8 different values.  Second, each element of the
+;;; vector is a list of keysym names rather than of keycodes.  Recall
+;;; that a keysym name is a Common Lisp symbol in the KEYWORD package.
 (defmethod clim-xcommon:modifier-mapping ((port clx-port))
   (let* ((display (clx-port-display port))
 	 (x-modifiers (multiple-value-list (xlib:modifier-mapping display)))
@@ -1174,7 +1212,6 @@
 			  (modifier-keycode->keysyms display keycode))
 			keycodes)))
     modifier-map))
-
 
 ;;;; Backend component of text selection support
 

@@ -65,20 +65,13 @@
 			    ("Presentation Tests"
 			     :menu tabdemo-presentation-tests-menu)))
 
+;;; This is the main entry point for starting the demo.
 (defun tabdemo ()
   (run-frame-top-level (make-application-frame 'tabdemo)))
 
-;;;(define-presentation-to-command-translator remove-pane
-;;;    (tab-page com-remove-tab-page tabdemo
-;;;	      :gesture :describe
-;;;	      :documentation "remove this pane"
-;;;	      :pointer-documentation "remove this pane")
-;;;  (object)
-;;;  (list object))
-
-
-;; FIXME: It only get errors due to bogus frame names with FIND-PANE-NAMED.
-;; Ignoring the symbol identity and case works around that.
+;; FIXME: It only get errors due to bogus frame names with
+;; FIND-PANE-NAMED.  Ignoring the symbol identity and case works
+;; around that.
 (defun sane-find-pane-named (frame name)
   (find name
 	(climi::frame-named-panes frame)
@@ -108,7 +101,7 @@
   (accept 'special-page)
   (write-line "Correct answer!  That's the special page." *standard-input*))
 
-(define-tabdemo-command (com-quit-tabdemo :name t)
+(define-tabdemo-command (com-quit :name t)
     ()
   (frame-exit *application-frame*))
 
@@ -117,34 +110,31 @@
   (setf (tab-layout-pages (tabdemo-layout))
 	(let ((old (tab-layout-pages (tabdemo-layout)))
 	      (new '()))
-	  (loop
-	      while old
-	      for i = (random (length old))
-	      do
-		(push (elt old i) new)
-		(setf old (remove-if (constantly t) old :start i :count 1)))
+	  (loop while old
+		for i = (random (length old))
+		do (push (elt old i) new)
+		   (setf old (remove-if (constantly t) old :start i :count 1)))
 	  new)))
+
+(defmacro with-enabled-tab-layout-page (var &body body)
+  `(let ((,var (tab-layout-enabled-page (tabdemo-layout))))
+     (unless (null page)
+       ,@body)))
 
 (define-tabdemo-command (com-change-page-title :name t)
     ()
-  (let ((page (tab-layout-enabled-page (tabdemo-layout))))
-    (when page
-      (setf (tab-page-title page)
-	    (accept 'string
-		    :prompt "New title"
-		    :default (tab-page-title page))))))
+  (with-enabled-tab-layout-page page
+    (setf (tab-page-title page)
+	  (accept 'string
+		  :prompt "New title"
+		  :default (tab-page-title page)))))
 
 (define-tabdemo-command (com-paint-page-red :name t)
     ()
-  (let ((page (tab-layout-enabled-page (tabdemo-layout))))
-    (when page
-      (setf (getf (tab-page-drawing-options page) :ink) +red+))))
+  (with-enabled-tab-layout-page page
+    (setf (getf (tab-page-drawing-options page) :ink) +red+)))
 
 (define-tabdemo-command (com-paint-page-green :name t)
     ()
-  (let ((page (tab-layout-enabled-page (tabdemo-layout))))
-    (when page
-      (setf (getf (tab-page-drawing-options page) :ink) +green+))))
-
-#+(or)
-(tabdemo:tabdemo)
+  (with-enabled-tab-layout-page page
+    (setf (getf (tab-page-drawing-options page) :ink) +green+)))

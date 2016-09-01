@@ -5,9 +5,9 @@
 (defpackage :clim-xcommon
   (:use :clim :clim-lisp)
   (:export #:keysym-port-mixin
-	   #:lookup-keysym
+	   #:keysym-to-keysym-name
 	   #:modifier-mapping
-	   #:reverse-lookup-keysym
+	   #:keysym-name-to-keysym
 	   #:x-event-state-modifiers
 	   #:x-keysym-to-clim-modifiers))
 
@@ -59,4 +59,16 @@
 		#:pointer-motion-hint-event
                 #:device-font-text-style
                 ;;
-                ) )
+                )
+  (:import-from :clim-standard
+		#:standard-full-mirrored-sheet-mixin
+		#:standard-event-port-mixin
+		#:standard-graft
+		#:pointer-grab-sheet
+		#:%sheet-mirror-region
+                #:%sheet-mirror-transformation
+		#:standard-port
+		#:*configuration-event-p*
+		#:%update-mirror-geometry
+		)
+  )

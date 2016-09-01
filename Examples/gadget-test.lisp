@@ -21,41 +21,41 @@
 
 (in-package :clim-demo)
 
-;; Gadget Test/Demo
+;;; Gadget Test/Demo
 
-;; To run the gadget test:   (clim-demo:gadget-test)
+;;; To run the gadget test:   (clim-demo::gadget-test)
 
-;; McCLIM contains an alternate look and feel entitled "pixie" which is
-;; not the default. It can by used by creating your application using an
-;; alternate frame manager, clim-internals::pixie/clx-look.
+;;; McCLIM contains an alternate look and feel entitled "pixie" which
+;;; is not the default. It can by used by creating your application
+;;; using an alternate frame manager, clim-internals::pixie/clx-look.
 
-;; To run the gadget test using the pixie frame manager:
-;; (gadget-test 'clim-internals::pixie/clx-look)
-;; This may require you to load the clim-looks system.
+;;; To run the gadget test using the pixie frame manager:
+;;; (gadget-test 'clim-internals::pixie/clx-look)
+;;; This may require you to load the clim-looks system.
 
 (defun gadget-test (&optional frame-manager-name)
   (run-frame-top-level
    (if frame-manager-name 
-       (make-application-frame 'gadget-test
-                               :frame-manager (make-instance frame-manager-name
-                                                             :port (find-port)))
+       (make-application-frame
+	'gadget-test
+	:frame-manager (make-instance frame-manager-name :port (find-port)))
        (make-application-frame 'gadget-test))))
-
-(export 'gadget-test)
 
 (defun run-pixie-test (name)
   (when name
     (run-frame-top-level
-     (make-application-frame name
-                             :frame-manager (make-instance 'clim-internals::pixie/clx-look
-                                                           :port (find-port))))))
+     (make-application-frame
+      name
+      :frame-manager (make-instance 'clim-internals::pixie/clx-look
+		       :port (find-port))))))
 
-(defmethod gadget-test-frame-top-level ((frame application-frame)
-				       &key (command-parser 'command-line-command-parser)
-				       (command-unparser 'command-line-command-unparser)
-				       (partial-command-parser
-					'command-line-read-remaining-arguments-for-partial-command)
-				       (prompt "Command: "))
+(defmethod gadget-test-frame-top-level
+    ((frame application-frame)
+     &key (command-parser 'command-line-command-parser)
+       (command-unparser 'command-line-command-unparser)
+       (partial-command-parser
+	'command-line-read-remaining-arguments-for-partial-command)
+       (prompt "Command: "))
   (declare (ignore command-parser command-unparser partial-command-parser prompt))
   (catch 'exit
     (clim-extensions:simple-event-loop))
@@ -137,6 +137,7 @@
                  :current-color +black+)
      (slider-v   :slider
                  :min-value 0
+		 :show-value-p t
                  :max-value 100
                  :orientation :vertical
                  :current-color +black+
@@ -156,6 +157,7 @@
      (slider-v3  :slider
                  :min-value 0
                  :max-value 100
+		 :show-value-p t
                  :orientation :vertical
                  :current-color +black+
                  :value 0)
@@ -234,22 +236,24 @@
 
 (defmethod run-frame-top-level :around ((frame gadget-test) &key &allow-other-keys)
   ;; FIXME: Timer events appear to have rotted.
-  ;; Also, the following won't work because the frame has not really been realized yet,
-  ;; so you can't get at its panes. Yet it has worked, and recently. Odd.
-  ;; (clim-internals::schedule-timer-event (find-pane-named frame 'radar) 'radiate 0.1)
+  ;; Also, the following won't work because the frame has not really
+  ;; been realized yet, so you can't get at its panes. Yet it has
+  ;; worked, and recently. Odd.
+  ;; (clim-internals::schedule-timer-event
+  ;;   (find-pane-named frame 'radar)
+  ;;   'radiate 0.1)
   (call-next-method))
 
-(defclass radar-pane (basic-gadget) (
-  (points
-    :initform '((0.01 0.01 0.10 0.10)
-                (0.10 0.02 0.70 0.40)
-                (0.20 0.03 0.60 0.30)
-                (0.20 0.04 0.20 0.50)
-                (0.20 0.05 0.60 0.20)
-                (0.20 0.06 0.30 0.40)
-                (0.20 0.07 0.60 0.90)
-                (0.20 0.08 0.80 0.30)
-                (0.20 0.09 0.60 0.20)))))
+(defclass radar-pane (basic-gadget)
+  ((points :initform '((0.01 0.01 0.10 0.10)
+		       (0.10 0.02 0.70 0.40)
+		       (0.20 0.03 0.60 0.30)
+		       (0.20 0.04 0.20 0.50)
+		       (0.20 0.05 0.60 0.20)
+		       (0.20 0.06 0.30 0.40)
+		       (0.20 0.07 0.60 0.90)
+		       (0.20 0.08 0.80 0.30)
+		       (0.20 0.09 0.60 0.20)))))
 
 (defmethod handle-event ((pane radar-pane) (event timer-event))
   (with-slots (points) pane
@@ -285,10 +289,3 @@
                                     orx 0
                                     :ink +white+ :filled nil))))))))
   (clim-internals::schedule-timer-event pane 'radiate 0.1))
-
-#-sbcl
-(defun common-lisp-user::lg ()
-  ; convenience, because I'm lazy
-  (with-open-file (file "Examples/grammar.lisp" :external-format :euc-kr)
-    (load file))
-  (run-pixie-test 'grammar))

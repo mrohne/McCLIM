@@ -21,48 +21,48 @@
 
 (in-package :clim-demo)
 
-(defparameter calc '(0))
+(defparameter *calc* '(0))
 (defvar *text-field* nil)
 
 (defun sliderdemo ()
   (let ((frame (make-application-frame 'sliderdemo)))
     (run-frame-top-level frame)))
 
-(defmacro queue-number(int)
+(defmacro queue-integer(int)
   `(lambda (gadget)
      (declare (ignore gadget))
-     (let ((last-item (first (last calc))))
+     (let ((last-item (first (last *calc*))))
        (if (numberp last-item)
-	   (setf (car (last calc)) (+ (* 10 last-item) ,int))
-	   (setf calc (nconc calc (list ,int))))
+	   (setf (car (last *calc*)) (+ (* 10 last-item) ,int))
+	   (setf *calc* (nconc *calc* (list ,int))))
        (setf (gadget-value *text-field*)
-             (princ-to-string (first (last calc)))))))
+             (princ-to-string (first (last *calc*)))))))
 
-(defmacro queue-operator (operator)
+(defmacro queue-op (operator)
   `(lambda (gadget)
      (declare (ignore gadget))
      (do-operation t)
-     (if (functionp (first (last calc)))
-	 (setf (first (last calc)) ,operator)
-       	 (setf calc (nconc calc (list ,operator))))))
+     (if (functionp (first (last *calc*)))
+	 (setf (first (last *calc*)) ,operator)
+       	 (setf *calc* (nconc *calc* (list ,operator))))))
 
 (defun do-operation (gadget)
   (declare (ignore gadget))
-  (when (= 3 (length calc))
-    (setf (car calc) (apply (second calc) (list (first calc) (third calc)))
-	  (cdr calc) nil)
-    (setf (gadget-value *text-field*) (princ-to-string (first calc)))))
+  (when (= 3 (length *calc*))
+    (setf (car *calc*) (apply (second *calc*) (list (first *calc*) (third *calc*)))
+	  (cdr *calc*) nil)
+    (setf (gadget-value *text-field*) (princ-to-string (first *calc*)))))
 
 (defun initac (gadget)
   (declare (ignore gadget))
-  (setf calc (list 0)
+  (setf *calc* (list 0)
 	(gadget-value *text-field*) (princ-to-string 0)))
 
 (defun initce (gadget)
   (declare (ignore gadget))
-  (let ((last-item (first (last calc))))
-    (unless (or (null calc) (not (numberp last-item)))
-      (setf calc (butlast calc)
+  (let ((last-item (first (last *calc*))))
+    (unless (or (null *calc*) (not (numberp last-item)))
+      (setf *calc* (butlast *calc*)
 	    (gadget-value *text-field*) (princ-to-string 0)))))
 
 (defun print-screen (gadget)
@@ -93,14 +93,14 @@
             :space-requirement (make-space-requirement
                                 :width 50 :height 50)
             :label ,label
-            :activate-callback (queue-operator #',operator)))
+            :activate-callback (queue-op #',operator)))
 
   (defun make-number-button-form (name label number)
     `(,name :push-button
             :space-requirement (make-space-requirement
                                 :width 50 :height 50)
             :label ,label
-            :activate-callback (queue-number ,number))))
+            :activate-callback (queue-integer ,number))))
 
 (define-application-frame sliderdemo () ()
   (:panes #.(make-operator-button-form 'plus "+" '+)

@@ -3,7 +3,7 @@
 ;;;  (c) copyright 2000 by 
 ;;;           Iban Hatchondo (hatchond@emi.u-bordeaux.fr)
 ;;;           Julien Boninfante (boninfan@emi.u-bordeaux.fr)
-;;;	      Robert Strandh (strandh@labri.u-bordeaux.fr)
+;;;	      Robert Strandh (robert.strandh@gmail.com)
 
 ;;; This library is free software; you can redistribute it and/or
 ;;; modify it under the terms of the GNU Library General Public
@@ -20,17 +20,12 @@
 ;;; Free Software Foundation, Inc., 59 Temple Place - Suite 330, 
 ;;; Boston, MA  02111-1307  USA.
 
-(in-package :clim-demo)
+(in-package #:clim-demo)
 
 (defparameter *calculator-text-style*
   (make-text-style :sans-serif :roman :large))
 
 (defun calculator ()
-  #+nil
-  (progn
-    (loop for port in climi::*all-ports*
-        do (destroy-port port))
-    (setq climi::*all-ports* nil))
   (let ((frame (make-application-frame 'calculator)))
     (run-frame-top-level frame)
     frame))
@@ -77,12 +72,13 @@
       (pop state))
     (show 0)))
 
-(defmethod calculator-frame-top-level ((frame application-frame)
-				       &key (command-parser 'command-line-command-parser)
-				       (command-unparser 'command-line-command-unparser)
-				       (partial-command-parser
-					'command-line-read-remaining-arguments-for-partial-command)
-				       (prompt "Command: "))
+(defmethod calculator-frame-top-level
+    ((frame application-frame)
+     &key (command-parser 'command-line-command-parser)
+       (command-unparser 'command-line-command-unparser)
+       (partial-command-parser
+	'command-line-read-remaining-arguments-for-partial-command)
+       (prompt "Command: "))
   (declare (ignore command-parser command-unparser partial-command-parser prompt))
   (clim-extensions:simple-event-loop))
      
@@ -133,4 +129,3 @@
              (list seven eight divide)
              (list nine zero result))))))
   (:top-level (calculator-frame-top-level . nil)))
-

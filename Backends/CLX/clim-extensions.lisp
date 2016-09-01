@@ -1,7 +1,7 @@
 ;;   (c) copyright 2002 by
 ;;;           Joachim Pouderoux (pixel@pixeledena.com)
 ;;;  (c) copyright 2001 by 
-;;;           Robert Strandh (strandh@labri.u-bordeaux.fr)
+;;;           Robert Strandh (robert.strandh@gmail.com)
 
 ;;; This library is free software; you can redistribute it and/or
 ;;; modify it under the terms of the GNU Library General Public
@@ -19,13 +19,13 @@
 ;;; Boston, MA  02111-1307  USA.
 
 (eval-when (:compile-toplevel :load-toplevel)
-  ; I don't think that this should be necessarily here,
-  ; but while it is, it needs to ensure that the use-package'ing
-  ; happens before the rest of the file is read.
+  ;; I don't think that this should be necessarily here, but while it
+  ;; is, it needs to ensure that the use-package'ing happens before
+  ;; the rest of the file is read.
 
-(in-package :clim-clx)
+  (in-package :clim-clx)
   (use-package :IMAGE)
-(use-package :clim-extensions))
+  (use-package :clim-extensions))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;
@@ -87,7 +87,8 @@
        (logand green-mask (ash pixel green-mask-gap))
        (logand blue-mask (ash pixel blue-mask-gap)))))
 
-; We only handle case where screen type (i.e. visual-class) is :truecolor
+;;; We only handle case where screen type (i.e. visual-class) is
+;;; :truecolor.
 (defun choose-computing-pixel (image depth)
   (declare (type image image)
 	   (type (unsigned-byte 16) depth))
@@ -221,7 +222,7 @@
 			 (type fixnum data-width)
 			 (type xlib::image server-image))
 
-		; optimisation on server
+		;; optimisation on server
 		(let ((x-min* (floor x-min))
 		      (y-min* (floor y-min)) ;why +1 ?
 		      (x-max* (floor x-max)) ;idem
@@ -357,13 +358,15 @@
 (defmethod realize-mirror ((port clx-port) (pane image-pane))
   (realize-mirror-aux port pane :backing-store :always))
 
-;; [Julien] As drawing-image mostly doesn't work, except drawaing everything (sigh !..)
-;;          the region provided by graphical server is ignored, and the entire pane 
-;;          region is redrawn. Bugs must be fixed before doing the right thing.
-;;pdm: No, don't ignore the region, otherwise the pane becomes completely
-;; unusable, spending all the time redrawing, redrawing, redrawing, ...
-;; There's no reason to ignore the region, everything works fine with it
-;; AFAIK.
+;;; [Julien] As drawing-image mostly doesn't work, except drawaing
+;;; everything (sigh !..)  the region provided by graphical server is
+;;; ignored, and the entire pane region is redrawn. Bugs must be fixed
+;;; before doing the right thing.
+;;;
+;;;pdm: No, don't ignore the region, otherwise the pane becomes
+;;; completely unusable, spending all the time redrawing, redrawing,
+;;; redrawing, ...  There's no reason to ignore the region, everything
+;;; works fine with it AFAIK.
 (defmethod handle-repaint ((pane image-pane) region)
   (with-slots (image) pane
     (when image

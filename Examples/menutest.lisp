@@ -1,7 +1,5 @@
-;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: MENUTEST; Base: 10; Lowercase: Yes -*-
-
 ;;;  (c) copyright 2000 by 
-;;;	      Robert Strandh (strandh@labri.u-bordeaux.fr)
+;;;	      Robert Strandh (robert.strandh@gmail.com)
 
 ;;; This library is free software; you can redistribute it and/or
 ;;; modify it under the terms of the GNU Library General Public
@@ -18,9 +16,10 @@
 ;;; Free Software Foundation, Inc., 59 Temple Place - Suite 330, 
 ;;; Boston, MA  02111-1307  USA.
 
-(defpackage :MENUTEST (:USE :CLIM :CLIM-EXTENSIONS :CLIM-LISP))
+(defpackage #:menutest
+  (:use :clim :clim-extensions :clim-lisp))
 
-(in-package :menutest)
+(in-package #:menutest)
 
 (defun menutest ()
   (let ((frame (make-application-frame 'menutest)))
@@ -35,9 +34,7 @@
            :display-time nil
            :text-style (make-text-style :sans-serif :roman :normal)))
   (:layouts
-   (defaults (vertically () screen)))
-  #+nil
-  (:top-level (menutest-frame-top-level)))
+   (defaults (vertically () screen))))
 
 (define-menutest-command com-file ()
   (format *standard-output* "You pressed the File button.~%")
@@ -60,6 +57,3 @@
 		    :errorp nil
 		    :menu '(("Buffer" :menu buffer-command-table)
 			    ("File"   :command com-file)))
-
-
-
