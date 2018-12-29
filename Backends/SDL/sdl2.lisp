@@ -123,11 +123,11 @@
     #+trace(format *trace-output* ";; create surface...~%")
     (let ((surface 
 	   (autowrap:autocollect (ptr)
-	       (c-with ((dp :int) (rm uint32) (gm uint32) (bm uint32) (am uint32))
+	       (plus-c:c-with ((dp :int) (rm uint32) (gm uint32) (bm uint32) (am uint32))
 		 (sdl2::check-rc (sdl-pixel-format-enum-to-masks +sdl-pixelformat-index8+ (dp &) (rm &) (gm &) (bm &) (am &)))
 		 (sdl2::check-null (sdl-create-rgb-surface 0 ww hh dp rm gm bm am)))
 	     (sdl-free-surface ptr))))
-      (c-with ((cs uint8 :count (* 256 4) :free t))
+      (plus-c:c-with ((cs uint8 :count (* 256 4) :free t))
 	#+trace(format *trace-output* ";; copy colors to ~a...~%" (cs &))
 	(loop 
 	   for jj below 256
@@ -143,7 +143,7 @@
 		 (sdl2::check-rc (sdl-set-palette-colors palette (cs &) 0 256))
 		 (sdl2::check-rc (sdl-set-surface-palette surface palette)))
 	    (sdl-free-palette palette))))
-      (c-with ((px uint8 :count (* hh ww) :free nil :from (c-ref surface sdl-surface :pixels)))
+      (plus-c:c-with ((px uint8 :count (* hh ww) :free nil :from (c-ref surface sdl-surface :pixels)))
 	#+trace(format *trace-output* ";; copy pixels to ~a...~%" (px &))
 	(loop
 	   with dd = (c-ref surface sdl-surface :pitch)
@@ -191,11 +191,11 @@
 	     (setf vals (multiple-value-list (funcall func)))
 	   (error (state)
 	     (format *trace-output* ";; SDL error: ~a~%" state)
-	     (sb-debug:backtrace)
+	     (sb-debug:print-backtrace :stream *trace-output*)
 	     (setf vals state))
 	   (condition (state) 
 	     (format *trace-output* ";; SDL condition: ~a~%" state)
-	     (sb-debug:backtrace)
+	     (sb-debug:print-backtrace :stream *trace-output*)
 	     (setf vals state)))
       (push-message recv vals))))
 (defun %recv-sdl-vals (vals)

@@ -4,9 +4,14 @@
 
 (defpackage :clim-sdl
   (:use :clim :clim-lisp :clim-internals :clim-backend :clim-sys)
-  (:use :trivial-channels :trivial-garbage :autowrap :plus-c)
-  (:shadowing-import-from :sdl2-ffi.functions #:sdl-thread-id)
-  (:use :sdl2-ffi sdl2-ffi.functions)
+  (:use :trivial-channels :trivial-garbage)
+  (:use :autowrap.minimal :plus-c)
+  (:shadowing-import-from #:sdl2-ffi)
+  (:use #:sdl2-ffi)
+  (:shadowing-import-from #:sdl2-ffi.functions #:sdl-thread-id)
+  (:use #:sdl2-ffi.functions)
+  (:shadowing-import-from :sdl2-ffi.accessors)
+  (:use #:sdl2-ffi.accessors)
   (:import-from :climi
                 #:+alt-key+
                 ;;
