@@ -25,7 +25,8 @@
     
 (defmethod sdl-keyboard ((port sdl-port))
   (with-slots (%wait) port
-    (c-let ((wait sdl-event :from %wait))
+    (plus-c:c-let 
+	((wait sdl-event :from %wait))
       (let* ((mirror (wait :key :window-id))
 	     (sheet (port-lookup-sheet port mirror))
 	     (focus (port-keyboard-input-focus port))
@@ -42,7 +43,8 @@
 	      (make-event event target 0 0 
 			  :key-name scancode :key-character keyname)))))))
 (defmethod process-sdl-mousemotion ((port sdl-port) event)
-  (c-let ((event sdl-event :from event))
+  (plus-c:c-let 
+      ((event sdl-event :from event))
     (let* ((xx (event :motion :x))
 	   (yy (event :motion :y))
 	   (mirror (event :motion :window-id))
@@ -73,7 +75,8 @@
 						    :modifier-state 0))))))))
 
 (defmethod process-sdl-buttonevent ((port sdl-port) event)
-  (c-let ((event sdl-event :from event))
+  (plus-c:c-let 
+      ((event sdl-event :from event))
     (let* ((xx (event :button :x))
 	   (yy (event :button :y))
 	   (button (cond ((eql (event :button :button) 1) +pointer-left-button+)
@@ -114,7 +117,8 @@
 	       (setf (pointer-grab-sheet port) nil)))))))
 
 (defmethod process-sdl-windowevent ((port sdl-port) event)
-  (c-let ((event sdl-event :from event))
+  (plus-c:c-let 
+      ((event sdl-event :from event))
     (let* ((mirror (event :window :window-id))
 	   (sheet (port-lookup-sheet port mirror))
 	   (window (port-lookup-window port mirror)))
@@ -195,8 +199,9 @@
 (defmethod process-next-event ((port sdl-port) &key wait-function (timeout nil))
   (declare (ignore wait-function))
   (with-slots (%send %recv %wake %wait) port
-    (c-let ((wake sdl-event :from %wake)
-	    (wait sdl-event :from %wait))
+    (plus-c:c-let
+	((wake sdl-event :from %wake)
+	 (wait sdl-event :from %wait))
       (loop
 	 (let ((rc (sdl-next-event %wait timeout)))
 	   (when (zerop rc)

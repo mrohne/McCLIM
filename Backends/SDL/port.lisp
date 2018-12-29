@@ -63,7 +63,7 @@
   ;; install CLIM support
   (push (make-graft port) (port-grafts port))
   (setf (slot-value port 'pointer) (make-instance 'sdl-pointer :port port))
-  (push (make-instance 'sdl-frame-manager :port port) (frame-managers port)))
+  (setf (slot-value port 'frame-managers) (list (make-instance 'sdl-frame-manager :port port))))
 
 (defmethod print-object ((object sdl-port) stream)
   (print-unreadable-object (object stream :identity t :type t)
@@ -295,7 +295,7 @@
 	     (format (sdl2::check-rc (sdl-get-window-pixel-format window)))
 	     (sf *sdl-surface-flags*)
 	     (pf *sdl-pixel-format*))
-	(c-with ((bpp :int)
+	(plus-c:c-with ((bpp :int)
 		 (rm uint32)
 		 (gm uint32)
 		 (bm uint32)
@@ -350,7 +350,7 @@
 		 (hh (snap height))
 		 (dx (snap medium-x))
 		 (dy (snap medium-y)))
-	     (c-with ((sr sdl-rect)
+	     (plus-c:c-with ((sr sdl-rect)
 		      (dr sdl-rect))
 	       (setf (sr :x) sx (sr :y) sy (sr :w) ww (sr :h) hh)
 	       (setf (dr :x) dx (dr :y) dy (dr :w) ww (dr :h) hh)
@@ -377,7 +377,7 @@
   (let* ((render (port-lookup-render port mirror))
 	 (window (port-lookup-window port mirror))
 	 (format (sdl-get-window-pixel-format window)))
-    (c-with ((cr sdl-rect))
+    (plus-c:c-with ((cr sdl-rect))
       (sdl-get-window-size window (cr :w &) (cr :h &))
       (let* ((ww (snap (cr :w)))
 	     (hh (snap (cr :h)))
@@ -434,7 +434,7 @@
     (if (null mirror)
 	(call-next-method)
 	(with-port-locked (port)
-	  (c-with ((cr sdl-rect))
+	  (plus-c:c-with ((cr sdl-rect))
 	    (with-bounding-rectangle* (x1 y1 x2 y2) 
 		(region-intersection 
 		 (sheet-native-region sheet)
@@ -450,7 +450,7 @@
 (defmethod make-graft
     ((port sdl-port) &key (orientation :default) (units :device))
   (with-slots (%mode) port
-    (c-with ((mode sdl-display-mode :from %mode))
+    (plus-c:c-with ((mode sdl-display-mode :from %mode))
       (make-instance 'sdl-graft
 		     :port port :mirror (gensym)
 		     :region (make-bounding-rectangle 0 0 (mode :w) (mode :h))

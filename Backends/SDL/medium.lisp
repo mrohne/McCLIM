@@ -142,7 +142,7 @@
 	  (let ((tx (sdl2::check-null (sdl-create-texture-from-surface %render px))))
 	    (unwind-protect
 		 ;; texture -> screen
-		 (c-with ((sr sdl-rect)
+		 (plus-c:c-with ((sr sdl-rect)
 			  (dr sdl-rect))
 		   (setf (sr :x) (snap from-x))
 		   (setf (sr :y) (snap from-y))
@@ -178,7 +178,7 @@
 	(let ((ii 0)
 	      (nn 256)
 	      (tr (sheet-device-transformation (medium-sheet medium))))
-	  (c-with ((ps sdl-point :count nn))
+	  (plus-c:c-with ((ps sdl-point :count nn))
 	    (let (x0 y0 x1 y1)
 	      (map nil
 		   (lambda (cc)
@@ -247,7 +247,7 @@
 	      (jj 255)
 	      (nn 256)
 	      (tr (sheet-device-transformation (medium-sheet medium))))
-	  (c-with ((ps sdl-point :count nn))
+	  (plus-c:c-with ((ps sdl-point :count nn))
 	    (let (x0 y0 x1 y1)
 	      (map nil
 		   (lambda (cc)
@@ -290,7 +290,7 @@
 	(let ((tr (sheet-device-transformation (medium-sheet medium))))
 	  (with-transformed-position (tr left top)
 	    (with-transformed-position (tr right bottom)
-	      (c-with ((dr sdl-rect))
+	      (plus-c:c-with ((dr sdl-rect))
 		(setf (dr :x) (snap left))
 		(setf (dr :y) (snap top))
 		(setf (dr :w) (snap (- right left)))
@@ -303,7 +303,7 @@
 		  (t
 		   (let ((tx (sdl2::check-null (sdl-create-texture-from-surface %render %design))))		 
 		     (unwind-protect
-			  (c-with ((sr sdl-rect))
+			  (plus-c:c-with ((sr sdl-rect))
 			    (setf (sr :x) 0)
 			    (setf (sr :y) 0)
 			    (setf (sr :w) (c-ref %design sdl-surface :w))
@@ -351,7 +351,7 @@
 
 (defmethod text-style-character-width (text-style (medium sdl-medium) char)
   (let ((font (port-find-font (port medium) text-style)))
-    (c-with ((minx :int) (maxx :int) (miny :int) (maxy :int) (advx :int))
+    (plus-c:c-with ((minx :int) (maxx :int) (miny :int) (maxy :int) (advx :int))
       (ttf-glyph-metrics font (char-code #\m) (minx &) (maxx &) (miny &) (maxy &) (advx &))
       (unsnap advx))))
 
@@ -369,7 +369,7 @@
 	(setf string (etypecase string
 		       (character (string string))
 		       (string string)))
-	(c-with ((ww :int) (hh :int))
+	(plus-c:c-with ((ww :int) (hh :int))
 	  (loop
 	     with bl = (text-style-ascent text-style medium)
 	     for beg = start then (1+ pos)
@@ -385,7 +385,7 @@
       (when (null %font)
 	(cerror "Continue" "No font"))
       (when %font
-	(c-with ((ww :int) (hh :int))
+	(plus-c:c-with ((ww :int) (hh :int))
 	  (ttf-size-text %font (subseq string start end) (ww &) (hh &))
 	  (values (unsnap ww) (unsnap hh)))))))
 (defmethod climi::text-bounding-rectangle*
@@ -420,7 +420,7 @@
 	(with-port-locked (%port)
 	  (let ((tr (sheet-device-transformation (medium-sheet medium))))
 	    (with-transformed-position (tr x y)
-	      (c-with ((cc sdl-color)
+	      (plus-c:c-with ((cc sdl-color)
 		       (sr sdl-rect)
 		       (dr sdl-rect))
 		;; extract color from current %render
@@ -473,11 +473,6 @@
 ;;; FIXME: need these to stop the default method attempting to do
 ;;; pixmaps, which it appears the sdl backend doesn't support yet.
 (defmethod climi::medium-draw-bezier-design* 
-    ((medium sdl-medium) (design climi::bezier-area))
+    ((medium sdl-medium) (design area))
   nil)
-(defmethod climi::medium-draw-bezier-design* 
-    ((medium sdl-medium) (design climi::bezier-union))
-  nil)
-(defmethod climi::medium-draw-bezier-design* 
-    ((medium sdl-medium) (design climi::bezier-difference))
-  nil)
+
