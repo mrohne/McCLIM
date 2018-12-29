@@ -72,10 +72,10 @@
 (defmethod deallocate-pixmap ((pixmap mirrored-pixmap))
   (port-deallocate-pixmap (port pixmap) pixmap))
 
-(defmethod sheet-native-transformation ((pixmap mirrored-pixmap))
+(defmethod port-native-transformation (port (pixmap mirrored-pixmap))
   +identity-transformation+)
 
-(defmethod sheet-native-region ((pixmap mirrored-pixmap))
+(defmethod port-native-region (port (pixmap mirrored-pixmap))
   (make-rectangle* 0 0
                    (pixmap-width pixmap)
                    (pixmap-height pixmap)))
