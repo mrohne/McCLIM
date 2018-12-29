@@ -19,6 +19,8 @@
 
 (in-package :clim-listener)
 
+(declaim (optimize (safety 3) (debug 3) (speed 0) (space 0)))
+
 (define-presentation-type listener-current-package () :inherit-from 'package)
 
 ;; Wholine Pane
@@ -36,8 +38,10 @@
 ;; When the pane is grown, we must repaint more than just the newly exposed
 ;; regions, because the decoration within the previous region must move.
 ;; Likewise, shrinking the pane requires repainting some of the interior.
+
 (defmethod allocate-space :after ((pane wholine-pane) width height)
-  (repaint-sheet pane (sheet-region pane)))
+  (unless (pane-needs-redisplay pane)
+    (setf (pane-needs-redisplay pane) t)))
 
 (defun print-package-name (stream)
   (let ((foo (package-name *package*)))
@@ -56,7 +60,7 @@
 ;; then calls handle-repaint to redraw the decoration.
 
 
-(defmethod handle-repaint ((pane wholine-pane) region)
+(defmethod repaint-sheet ((pane wholine-pane) region)
   (declare (ignore region))
   (with-output-recording-options (pane :draw t :record nil)
     (with-bounding-rectangle* (x0 y0 x1 y1) (sheet-region pane)
@@ -68,7 +72,7 @@
 
 (defmethod window-clear ((pane wholine-pane))
   (call-next-method)
-  (handle-repaint pane (sheet-region pane)))
+  (dispatch-repaint pane (sheet-region pane)))
 
 (defun generate-wholine-contents (frame pane)
   (declare (ignore frame))
