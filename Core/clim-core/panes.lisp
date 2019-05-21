@@ -31,6 +31,8 @@
 
 (in-package :clim-internals)
 
+(declaim (optimize (safety 3) (debug 3) (speed 0) (space 0)))
+
 ;;;;
 ;;;; Ambiguities and Obmissions
 ;;;;
@@ -1764,7 +1766,7 @@ which changed during the current execution of CHANGING-SPACE-REQUIREMENTS.
 (defmacro raising ((&rest options) &body contents)
   `(make-pane 'raised-pane ,@options :contents (list ,@contents)))
 
-(defmethod handle-repaint ((pane raised-pane) region)
+(defmethod repaint-sheet ((pane raised-pane) region)
   (declare (ignore region))
   (with-slots (border-width) pane
     (multiple-value-call #'draw-bordered-rectangle* pane (bounding-rectangle* (sheet-region pane))
@@ -1781,7 +1783,7 @@ which changed during the current execution of CHANGING-SPACE-REQUIREMENTS.
 (defmacro lowering ((&rest options) &body contents)
   `(make-pane 'lowered-pane ,@options :contents (list ,@contents)))
 
-(defmethod handle-repaint ((pane lowered-pane) region)
+(defmethod repaint-sheet ((pane lowered-pane) region)
   (declare (ignore region))
   (with-slots (border-width) pane
     (multiple-value-call #'draw-bordered-rectangle* pane (bounding-rectangle* (sheet-region pane))
@@ -2393,7 +2395,7 @@ SCROLLER-PANE appear on the ergonomic left hand side, or leave set to
                         (- (- x2 right) (+ x1 left))
                         (- (- y2 bottom) (+ y1 top)))))))
 
-(defmethod handle-repaint ((pane label-pane) region)
+(defmethod repaint-sheet ((pane label-pane) region)
   (declare (ignore region))
   (let ((m0 2)
         (a (text-style-ascent (pane-text-style pane) pane))
