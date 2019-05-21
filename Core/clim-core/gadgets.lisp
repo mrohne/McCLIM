@@ -1070,7 +1070,7 @@ and must never be nil.")
       (make-rectangle* (+ x1 border-width) (+ y1 border-width)
                        (- x2 border-width) (- y2 border-width)))))
 
-(defmethod handle-repaint :after ((pane 3D-border-mixin) region)
+(defmethod repaint-sheet :after ((pane 3D-border-mixin) region)
   (declare (ignore region))
   (with-slots (border-width border-style) pane
     (draw-bordered-polygon pane (polygon-points (bounding-rectangle (sheet-region pane)))
@@ -1170,7 +1170,7 @@ and must never be nil.")
       (setf pressedp nil)
       (dispatch-repaint pane +everywhere+))))
 
-(defmethod handle-repaint ((pane push-button-pane) region)
+(defmethod repaint-sheet ((pane push-button-pane) region)
   (declare (ignore region))
   (with-slots (armed pressedp) pane
     (with-bounding-rectangle* (x1 y1 x2 y2) (sheet-region pane)
@@ -1262,7 +1262,7 @@ and must never be nil.")
       (draw-line* pane x1 y1 x2 y2 :ink (effective-gadget-foreground pane) :line-thickness 2)
       (draw-line* pane x2 y1 x1 y2 :ink (effective-gadget-foreground pane) :line-thickness 2))))
 
-(defmethod handle-repaint ((pane toggle-button-pane) region)
+(defmethod repaint-sheet ((pane toggle-button-pane) region)
   (declare (ignore region))
   (when (sheet-grafted-p pane)
     (with-slots (armed) pane
@@ -1302,7 +1302,7 @@ and must never be nil.")
     :align-x :left
     :align-y :center))
 
-(defmethod handle-repaint ((pane menu-button-pane) region)
+(defmethod repaint-sheet ((pane menu-button-pane) region)
   (declare (ignore region))
   (with-slots (x-spacing y-spacing) pane
     (let ((region (sheet-region pane)))
@@ -1515,19 +1515,19 @@ and must never be nil.")
 
 (defmethod (setf gadget-min-value) :after (new-value (pane scroll-bar-pane))
   (declare (ignore new-value))
-  (scroll-bar/update-display pane))
+  (with-slots (all-new-p) pane (setf all-new-p t) (scroll-bar/compute-display pane)))
 
 (defmethod (setf gadget-max-value) :after (new-value (pane scroll-bar-pane))
   (declare (ignore new-value))
-  (scroll-bar/update-display pane))
+  (with-slots (all-new-p) pane (setf all-new-p t) (scroll-bar/compute-display pane)))
 
 (defmethod (setf scroll-bar-thumb-size) :after (new-value (pane scroll-bar-pane))
   (declare (ignore new-value))
-  (scroll-bar/update-display pane))
+  (with-slots (all-new-p) pane (setf all-new-p t) (scroll-bar/compute-display pane)))
 
 (defmethod (setf gadget-value) :after (new-value (pane scroll-bar-pane) &key invoke-callback)
   (declare (ignore new-value invoke-callback))
-  (scroll-bar/update-display pane))
+  (with-slots (all-new-p) pane (setf all-new-p t) (scroll-bar/compute-display pane)))
 
 (defmethod* (setf scroll-bar-values)
     (min-value max-value thumb-size value (scroll-bar scroll-bar-pane))
@@ -1611,11 +1611,11 @@ and must never be nil.")
       (cond ((region-contains-position-p (scroll-bar-up-region sb) x y)
              (scroll-up-line-callback sb (gadget-client sb) (gadget-id sb))
              (setf event-state :up-armed)
-             (scroll-bar/update-display sb))
+             (dispatch-repaint sb (sheet-region sb)))
             ((region-contains-position-p (scroll-bar-down-region sb) x y)
              (scroll-down-line-callback sb (gadget-client sb) (gadget-id sb))
              (setf event-state :dn-armed)
-             (scroll-bar/update-display sb))
+             (dispatch-repaint sb (sheet-region sb)))
             ;;
             ((region-contains-position-p (scroll-bar-thumb-region sb) x y)
              (setf event-state :dragging
@@ -1851,7 +1851,7 @@ and must never be nil.")
 
 
 #|
-(defmethod handle-repaint ((pane slider-pane) region)
+(defmethod repaint-sheet ((pane slider-pane) region)
   (declare (ignore region))
   (let ((position (convert-value-to-position pane))
         (slider-button-half-short-dim (ash slider-button-short-dim -1))
@@ -2205,7 +2205,7 @@ response to scroll wheel events."))
 (defmethod scroll-quantum ((pane generic-list-pane))
   (generic-list-pane-item-height pane))
 
-(defmethod handle-repaint ((pane generic-list-pane) region)
+(defmethod repaint-sheet ((pane generic-list-pane) region)
   (with-bounding-rectangle* (sx0 sy0 sx1 sy1) (sheet-region pane)
     (declare (ignore sx1 sy1))
     (with-bounding-rectangle* (rx0 ry0 rx1 ry1)
@@ -2367,7 +2367,7 @@ Returns two values, the item itself, and the index within the item list."
                (<= (+ new-origin (visible-items pane))
                    (generic-list-pane-items-length pane)))
       (setf (items-origin pane) new-origin)
-      (handle-repaint pane +everywhere+))))
+      (dispatch-repaint pane +everywhere+))))
 
 (defun meta-list-pane-call-presentation-menu (pane item)
   (let ((ptype (funcall (list-pane-presentation-type-key pane) item)))
@@ -2766,7 +2766,7 @@ if INVOKE-CALLBACK is given."))
   (popup-list-box pane)
   (disarm-gadget pane))
 
-(defmethod handle-repaint ((pane generic-option-pane) region)
+(defmethod repaint-sheet ((pane generic-option-pane) region)
   (with-bounding-rectangle* (x0 y0 x1 y1) (sheet-region pane)
     (multiple-value-bind (widget-width widget-height)
         (generic-option-pane-widget-size pane)

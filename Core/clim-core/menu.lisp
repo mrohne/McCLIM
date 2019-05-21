@@ -176,6 +176,7 @@ account, and create a list of menu buttons."
   (with-slots (frame-manager submenu-frame) sub-menu
     (when submenu-frame
       (mapc #'destroy-substructure (menu-children sub-menu))
+      (disable-frame submenu-frame)
       (disown-frame frame-manager submenu-frame)
       (disarm-gadget sub-menu)
       (dispatch-repaint sub-menu +everywhere+)
@@ -198,6 +199,7 @@ account, and create a list of menu buttons."
 ;;; menu-button-vertical-submenu-pane
 (defclass menu-button-vertical-submenu-pane (menu-button-submenu-pane) ())
 
+;;; TODO: lexical variables -> slots
 (let* ((left-padding 10)
        (widget-size  5)
        (right-padding 4)
@@ -216,11 +218,9 @@ account, and create a list of menu buttons."
                               :max-width +fill+
                               :min-height (max min-height total-height)
                               :height (max height total-height)
-                              :max-height (if (zerop max-height) ; make-space-requirements default maximums are zero..
-                                              0
-                                              (max max-height total-height)))))
+                              :max-height (max max-height total-height))))
 
-  (defmethod handle-repaint ((pane menu-button-vertical-submenu-pane) region)
+  (defmethod repaint-sheet ((pane menu-button-vertical-submenu-pane) region)
     (call-next-method)
     (multiple-value-bind (x1 y1 x2 y2)
         (bounding-rectangle* (sheet-region pane))
@@ -298,6 +298,7 @@ account, and create a list of menu buttons."
        (let ((command-name (if (consp value) (car value) value)))
          (if (command-enabled command-name frame)
              (make-pane-1 manager frame 'menu-button-leaf-pane
+                          :name name
                           :label name
                           :client client
                           :value-changed-callback
@@ -305,6 +306,7 @@ account, and create a list of menu buttons."
                               (declare (ignore gadget val))
                               (throw-object-ptype item presentation-type)))
              (let ((pane (make-pane-1 manager frame 'menu-button-leaf-pane
+                            :name name
                             :label name
                             :client client
                             :value-changed-callback
@@ -315,6 +317,7 @@ account, and create a list of menu buttons."
                pane))))
       (:function
         (make-pane-1 manager frame 'menu-button-leaf-pane
+                     :name name
                      :label name
                      :client client
                      :value-changed-callback
@@ -328,12 +331,14 @@ account, and create a list of menu buttons."
                            (throw-object-ptype command 'command)))))
       (:divider
        (make-pane-1 manager frame 'menu-divider-leaf-pane
+                    :name name
                     :label name
                     :client client))
       (:menu
         (make-pane-1 manager frame (if vertical
                                        'menu-button-vertical-submenu-pane
                                        'menu-button-submenu-pane)
+		     :name name
 		     :label name
 		     :client client
 		     :frame-manager manager
@@ -405,7 +410,7 @@ account, and create a list of menu buttons."
 	  (%make-menu-contents command-table)))
   (change-space-requirements menu-bar-pane))
 
-(defmethod handle-repaint ((pane menu-bar) region)
+(defmethod repaint-sheet ((pane menu-bar) region)
   (declare (ignore region))
   (with-slots (border-width) pane
     (multiple-value-call #'draw-bordered-rectangle*
