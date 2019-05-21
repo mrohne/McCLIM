@@ -99,6 +99,7 @@
 (setf (get :x11 :server-path-parser) 'parse-clx-server-path)
 (setf (get :clx :port-type) 'clx-port)
 (setf (get :clx :server-path-parser) 'parse-clx-server-path)
+(defparameter *default-server-path* (list :clx :host "unix"))
 
 (defgeneric initialize-clx (port))
 
@@ -121,7 +122,7 @@
 
 
 (defun realize-mirror-aux (port sheet
-				&key (width 100) (height 100) (x 0) (y 0)
+				&key width height x y
 				(border-width 0) (border 0)
 				(override-redirect :off)
 				(map t)
@@ -242,7 +243,7 @@
       (setf (xlib:wm-protocols window) `(:wm_delete_window))
       (xlib:change-property window
                             :WM_CLIENT_LEADER (list (xlib:window-id window))
-                            :WINDOW 32))))
+                            :WINDOW 32)))
 
 (defmethod %realize-mirror ((port clx-port) (sheet unmanaged-top-level-sheet-pane))
   (realize-mirror-aux port sheet
