@@ -57,7 +57,7 @@
    (grafts :initform nil
 	   :accessor port-grafts)
    (frame-managers :initform nil
-		   :reader frame-managers)
+		   :accessor frame-managers)
    (sheet->mirror :initform (make-hash-table :test #'eq))
    (mirror->sheet :initform (make-hash-table :test #'eq))
    (pixmap->mirror :initform (make-hash-table :test #'eq))
@@ -156,10 +156,6 @@
 
 (defmethod destroy-mirror ((port basic-port) (sheet mirrored-sheet-mixin))
   (error "Don't know how to destroy the mirror of a generic mirrored-sheet"))
-
-(defmethod mirror-transformation ((port basic-port) mirror)
-  (declare (ignore mirror))
-  (error "MIRROR-TRANSFORMATION is not implemented for generic ports"))
 
 (defmethod port-properties ((port basic-port) indicator)
   (with-slots (properties) port
